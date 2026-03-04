@@ -1,0 +1,38 @@
+<h2 mat-dialog-title>Add Triggers</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="trigger-form">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Date</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="date">
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <p class="section-label">Select triggers that applied:</p>
+
+    <div class="checkbox-list">
+      @for (option of options; track option.type) {
+        <mat-checkbox [formControlName]="option.type">
+          {{ option.label }}
+        </mat-checkbox>
+      }
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="accent" (click)="submit()">
+    Add Triggers
+  </button>
+</mat-dialog-actions>
+
+<style>
+  .trigger-form { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+  .full-width { width: 100%; }
+  .section-label { margin: 8px 0 4px; color: rgba(0,0,0,0.6); font-size: 0.9rem; }
+  .checkbox-list { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 8px; }
+</style>

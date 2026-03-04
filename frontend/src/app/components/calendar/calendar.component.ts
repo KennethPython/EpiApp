@@ -1,0 +1,169 @@
+import { Component, OnInit } from '@angular/core';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
+import { forkJoin } from 'rxjs';
+
+import { SeizureService } from '../../services/seizure.service';
+import { TriggerService } from '../../services/trigger.service';
+import { Seizure } from '../../models/seizure.model';
+import { Trigger, TRIGGER_LABELS } from '../../models/trigger.model';
+import { AddEventDialogComponent } from '../add-event-dialog/add-event-dialog.component';
+import { SeizureFormDialogComponent } from '../seizure-form-dialog/seizure-form-dialog.component';
+import { TriggerFormDialogComponent } from '../trigger-form-dialog/trigger-form-dialog.component';
+import { DayDetailDialogComponent } from '../day-detail-dialog/day-detail-dialog.component';
+
+export interface CalendarDay {
+  date: Date | null;
+  seizures: Seizure[];
+  triggers: Trigger[];
+}
+
+@Component({
+  selector: 'app-calendar',
+  standalone: true,
+  imports: [
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+  ],
+  templateUrl: './calendar.component.html',
+  styleUrls: ['./calendar.component.scss']
+})
+export class CalendarComponent implements OnInit {
+  currentYear = new Date().getFullYear();
+  currentMonth = new Date().getMonth();
+
+  seizures: Seizure[] = [];
+  triggers: Trigger[] = [];
+  weeks: CalendarDay[][] = [];
+
+  readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  readonly monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  readonly triggerLabels = TRIGGER_LABELS;
+
+  constructor(
+    private seizureService: SeizureService,
+    private triggerService: TriggerService,
+    private dialog: MatDialog
+  ) {}
+
+  ngOnInit(): void {
+    this.loadEvents();
+  }
+
+  loadEvents(): void {
+    forkJoin({
+      seizures: this.seizureService.getAll(),
+      triggers: this.triggerService.getAll()
+    }).subscribe(({ seizures, triggers }) => {
+      this.seizures = seizures;
+      this.triggers = triggers;
+      this.buildCalendar();
+    });
+  }
+
+  buildCalendar(): void {
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+    const startDow = firstDay.getDay();
+
+    const weeks: CalendarDay[][] = [];
+    let week: CalendarDay[] = [];
+
+    for (let i = 0; i < startDow; i++) {
+      week.push({ date: null, seizures: [], triggers: [] });
+    }
+
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(this.currentYear, this.currentMonth, d);
+      const dateStr = this.localDateString(date);
+
+      const daySeizures = this.seizures.filter(s =>
+        this.localDateString(new Date(s.dateTime)) === dateStr
+      );
+      const dayTriggers = this.triggers.filter(t => t.date === dateStr);
+
+      week.push({ date, seizures: daySeizures, triggers: dayTriggers });
+
+      if (week.length === 7) {
+        weeks.push(week);
+        week = [];
+      }
+    }
+
+    if (week.length > 0) {
+      while (week.length < 7) {
+        week.push({ date: null, seizures: [], triggers: [] });
+      }
+      weeks.push(week);
+    }
+
+    this.weeks = weeks;
+  }
+
+  /** Format a Date as YYYY-MM-DD using local time (avoids UTC drift). */
+  localDateString(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  get monthLabel(): string {
+    return `${this.monthNames[this.currentMonth]} ${this.currentYear}`;
+  }
+
+  prevMonth(): void {
+    if (this.currentMonth === 0) {
+      this.currentMonth = 11;
+      this.currentYear--;
+    } else {
+      this.currentMonth--;
+    }
+    this.buildCalendar();
+  }
+
+  nextMonth(): void {
+    if (this.currentMonth === 11) {
+      this.currentMonth = 0;
+      this.currentYear++;
+    } else {
+      this.currentMonth++;
+    }
+    this.buildCalendar();
+  }
+
+  openAddDialog(): void {
+    const addRef = this.dialog.open(AddEventDialogComponent, { width: '320px' });
+    addRef.afterClosed().subscribe((choice: 'SEIZURE' | 'TRIGGER' | undefined) => {
+      if (choice === 'SEIZURE') {
+        this.dialog.open(SeizureFormDialogComponent, { width: '440px' })
+          .afterClosed().subscribe(saved => { if (saved) this.loadEvents(); });
+      } else if (choice === 'TRIGGER') {
+        this.dialog.open(TriggerFormDialogComponent, { width: '400px' })
+          .afterClosed().subscribe(saved => { if (saved) this.loadEvents(); });
+      }
+    });
+  }
+
+  openDayDetail(day: CalendarDay): void {
+    if (!day.date) return;
+    this.dialog.open(DayDetailDialogComponent, {
+      width: '420px',
+      data: { date: day.date, seizures: day.seizures, triggers: day.triggers }
+    }).afterClosed().subscribe(changed => { if (changed) this.loadEvents(); });
+  }
+
+  isToday(date: Date | null): boolean {
+    if (!date) return false;
+    const today = new Date();
+    return this.localDateString(date) === this.localDateString(today);
+  }
+}

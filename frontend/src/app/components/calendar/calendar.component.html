@@ -1,0 +1,56 @@
+<div class="calendar-wrapper">
+  <mat-card class="calendar-card">
+    <mat-card-content>
+
+      <!-- Month navigation -->
+      <div class="month-nav">
+        <button mat-icon-button (click)="prevMonth()" aria-label="Previous month">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <h2 class="month-label">{{ monthLabel }}</h2>
+        <button mat-icon-button (click)="nextMonth()" aria-label="Next month">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+
+      <!-- Calendar grid: weekday headers + day cells in one 7-column grid -->
+      <div class="calendar-grid">
+
+        @for (day of weekdays; track day) {
+          <div class="weekday-header">{{ day }}</div>
+        }
+
+        @for (week of weeks; track $index) {
+          @for (day of week; track $index) {
+            <div
+              class="day-cell"
+              [class.empty]="!day.date"
+              [class.today]="isToday(day.date)"
+              (click)="openDayDetail(day)"
+            >
+              @if (day.date) {
+                <span class="day-number">{{ day.date.getDate() }}</span>
+                <div class="event-dots">
+                  @for (s of day.seizures; track s.id) {
+                    <span class="event-dot seizure" [matTooltip]="'Seizure'"></span>
+                  }
+                  @for (t of day.triggers; track t.id) {
+                    <span class="event-dot trigger" [matTooltip]="triggerLabels[t.type]"></span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Add event FAB -->
+  <div class="fab-container">
+    <button mat-fab color="primary" (click)="openAddDialog()" aria-label="Add event">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>
