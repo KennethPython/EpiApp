@@ -36,7 +36,7 @@
       @for (trigger of triggers; track trigger.id) {
         <mat-list-item>
           <mat-icon matListItemIcon class="trigger-color">warning_amber</mat-icon>
-          <span matListItemTitle>{{ triggerLabels[trigger.type] }}</span>
+          <span matListItemTitle>{{ getTriggerLabel(trigger) }}</span>
           <button matListItemMeta mat-icon-button (click)="deleteTrigger(trigger)" aria-label="Delete trigger">
             <mat-icon>delete_outline</mat-icon>
           </button>

@@ -70,6 +70,11 @@ export class DayDetailDialogComponent {
     });
   }
 
+  getTriggerLabel(trigger: Trigger): string {
+    if (trigger.type === 'OTHER' && trigger.label) return trigger.label;
+    return TRIGGER_LABELS[trigger.type];
+  }
+
   close(): void {
     this.dialogRef.close(this.changed);
   }
