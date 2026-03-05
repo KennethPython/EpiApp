@@ -22,6 +22,9 @@ public class Trigger {
     @Enumerated(EnumType.STRING)
     private TriggerType type;
 
+    // Used when type is OTHER to store a custom label
+    private String label;
+
     // Reserved for future user authentication
     private String userId;
 }
