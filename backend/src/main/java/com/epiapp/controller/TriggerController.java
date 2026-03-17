@@ -17,7 +17,10 @@ public class TriggerController {
     private final TriggerRepository triggerRepository;
 
     @GetMapping
-    public List<Trigger> getAll() {
+    public List<Trigger> getAll(@RequestParam(required = false) Long seizureId) {
+        if (seizureId != null) {
+            return triggerRepository.findBySeizureId(seizureId);
+        }
         return triggerRepository.findAll();
     }
 

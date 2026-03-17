@@ -25,6 +25,9 @@ public class Trigger {
     // Used when type is OTHER to store a custom label
     private String label;
 
+    // Optional link to the seizure this trigger is associated with
+    private Long seizureId;
+
     // Reserved for future user authentication
     private String userId;
 }
