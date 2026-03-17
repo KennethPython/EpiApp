@@ -1,6 +1,6 @@
 # EpiApp — Epilepsy Tracker
 
-A calendar-based app for logging seizures and triggers. Built with **Angular 17 + Angular Material** (frontend) and **Spring Boot 3 + H2** (backend).
+A calendar-based app for logging seizures, triggers, and medications. Built with **Angular 17 + Angular Material** (frontend) and **Spring Boot 3 + H2** (backend).
 
 ---
 
@@ -31,6 +31,10 @@ Runs on **http://localhost:8080**
 > JDBC URL: `jdbc:h2:mem:epiapp` · User: `sa` · Password: *(empty)*
 > Data resets on every restart (in-memory).
 
+A test user is created automatically on startup:
+- **Username:** `Kenneth123@`
+- **Password:** `Kenneth123@`
+
 ---
 
 ### Frontend
@@ -51,6 +55,27 @@ Runs on **http://localhost:4200** — proxies `/api/*` to the backend automatica
 
 All endpoints are under `/api`.
 
+### Auth
+
+| Method | Endpoint               | Description              |
+|--------|------------------------|--------------------------|
+| POST   | `/api/auth/register`   | Register a new user      |
+| POST   | `/api/auth/login`      | Login and get userId     |
+
+**Register / Login body:**
+```json
+{ "username": "Kenneth123@", "password": "Kenneth123@" }
+```
+
+**Response:**
+```json
+{ "userId": 1, "username": "Kenneth123@" }
+```
+
+Password rules (enforced on the frontend): min 8 characters, at least 1 number, at least 1 special character. Usernames must be unique (409 Conflict if taken).
+
+---
+
 ### Seizures
 
 | Method | Endpoint              | Description        |
@@ -59,7 +84,7 @@ All endpoints are under `/api`.
 | POST   | `/api/seizures`       | Create a seizure   |
 | DELETE | `/api/seizures/{id}`  | Delete a seizure   |
 
-**Seizure body (POST):**
+**POST body:**
 ```json
 {
   "dateTime": "2024-03-01T14:30:00",
@@ -69,6 +94,8 @@ All endpoints are under `/api`.
 }
 ```
 
+---
+
 ### Triggers
 
 | Method | Endpoint              | Description        |
@@ -77,56 +104,110 @@ All endpoints are under `/api`.
 | POST   | `/api/triggers`       | Create a trigger   |
 | DELETE | `/api/triggers/{id}`  | Delete a trigger   |
 
-**Trigger body (POST):**
+**POST body:**
 ```json
-{
-  "date": "2024-03-01",
-  "type": "SLEEP"
-}
+{ "date": "2024-03-01", "type": "SLEEP" }
 ```
+
+For custom triggers use `"type": "OTHER"` and include `"label": "My trigger"`.
+
+---
+
+### Custom Trigger Options
+
+| Method | Endpoint                        | Description                        |
+|--------|---------------------------------|------------------------------------|
+| GET    | `/api/custom-trigger-options`   | List saved custom trigger options  |
+| POST   | `/api/custom-trigger-options`   | Save a new custom trigger option   |
+| DELETE | `/api/custom-trigger-options/{id}` | Delete a custom trigger option  |
+
+---
+
+### Medications
+
+| Method | Endpoint                  | Description          |
+|--------|---------------------------|----------------------|
+| GET    | `/api/medications`        | List all medications |
+| POST   | `/api/medications`        | Create a medication  |
+| PUT    | `/api/medications/{id}`   | Update a medication  |
+| DELETE | `/api/medications/{id}`   | Delete a medication (also removes its logs) |
+
+**POST / PUT body:**
+```json
+{ "name": "Levetiracetam", "dosage": "500mg", "times": ["08:00", "20:00"] }
+```
+
+---
+
+### Medication Logs
+
+| Method | Endpoint                      | Description                         |
+|--------|-------------------------------|-------------------------------------|
+| GET    | `/api/medication-logs?date=`  | Get logs for a date (`YYYY-MM-DD`)  |
+| POST   | `/api/medication-logs`        | Mark a dose as taken                |
+
+**POST body:**
+```json
+{ "medicationId": 1, "scheduledTime": "08:00", "date": "2024-03-01" }
+```
+
+---
 
 ### Enums
 
-| Enum          | Values                                               |
-|---------------|------------------------------------------------------|
+| Enum          | Values                                                              |
+|---------------|---------------------------------------------------------------------|
 | `SeizureType` | `TONIC_CLONIC`, `ABSENCE`, `FOCAL`, `MYOCLONIC`, `ATONIC`, `OTHER` |
-| `TriggerType` | `CAFFEINE`, `SLEEP`, `MEDICATION`                   |
+| `TriggerType` | `CAFFEINE`, `SLEEP`, `MEDICATION`, `OTHER`                          |
 
 ---
 
 ## Frontend Components
 
-| Component                | Role                                                              |
-|--------------------------|-------------------------------------------------------------------|
-| `CalendarComponent`      | Month grid view. Shows seizures (red) and triggers (orange) as dots. Navigation via chevrons. |
-| `AddEventDialogComponent`| Opened by the FAB (`+`). Choose between Seizure or Trigger.     |
-| `SeizureFormDialogComponent` | Form: date, time, duration, type, notes. Saves one seizure. |
-| `TriggerFormDialogComponent` | Checkboxes for each trigger type + date picker. Each checked item is saved as a separate entry. |
-| `DayDetailDialogComponent`   | Opened by clicking a day. Lists that day's seizures and triggers with individual delete buttons. |
+| Component | Role |
+|---|---|
+| `LoginComponent` | Landing page. Username + password fields with Login and Register buttons. |
+| `RegisterComponent` | Registration form with password strength validation. |
+| `CalendarComponent` | Month grid view. Shows seizures (red) and triggers (orange) as dots. Two FABs: add event and add medication. |
+| `AddEventDialogComponent` | Choose between Seizure or Trigger. |
+| `SeizureFormDialogComponent` | Form: date, time, duration, type, notes, and optional trigger checkboxes. |
+| `TriggerFormDialogComponent` | Checkbox list (fixed + custom triggers) with date picker. Each checked item is saved as a separate trigger entry. |
+| `DayDetailDialogComponent` | Opened by clicking a day. Lists that day's seizures and triggers with delete buttons. |
+| `AddMedicationDialogComponent` | Add multiple medications at once via a pending list before saving all. |
+| `MedicationOverviewComponent` | Shows today's medications grouped by time slot. "Take all" button per slot. Taken doses shown in green with timestamp. |
+| `EditMedicationDialogComponent` | Edit or delete an existing medication. |
 
-**Services:** `SeizureService` and `TriggerService` wrap the REST API with `HttpClient`.
-**Models:** `Seizure`, `Trigger` interfaces in `src/app/models/`.
+**Services:** `SeizureService`, `TriggerService`, `CustomTriggerOptionService`, `MedicationService`, `MedicationLogService`, `AuthService` — all wrap REST endpoints via `HttpClient`.
+
+**Auth guard:** `authGuard` protects the `/calendar` route — redirects to `/login` if not authenticated.
 
 ---
 
 ## Data Flow
 
 ```
+App loads → /login (landing page)
+  → Login succeeds → /calendar (userId stored in localStorage)
+  → Register → /register → on success → /calendar
+
 User clicks "+"
   → AddEventDialog (choose type)
-    → SEIZURE → SeizureFormDialog → POST /api/seizures → calendar reloads
-    → TRIGGER → TriggerFormDialog → POST /api/triggers (one per checkbox) → calendar reloads
+    → SEIZURE → SeizureFormDialog → POST /api/seizures
+               (+ optional triggers) → POST /api/triggers per checked box
+    → TRIGGER → TriggerFormDialog → POST /api/triggers (one per checkbox)
 
 User clicks a day cell
-  → DayDetailDialog (list events)
-    → Delete button → DELETE /api/seizures/{id} or /api/triggers/{id} → list updates
+  → DayDetailDialog → lists seizures + triggers
+    → Delete → DELETE /api/seizures/{id} or /api/triggers/{id}
+
+Medication FAB
+  → AddMedicationDialog → pending list → forkJoin POST /api/medications
+  → MedicationOverview → grouped by time → "Take all" → POST /api/medication-logs
+  → Edit button → EditMedicationDialog → PUT or DELETE /api/medications/{id}
 ```
 
 ---
 
 ## Auth Readiness
 
-Both `Seizure` and `Trigger` entities include a `userId` field (currently unused). Adding Spring Security + JWT will only require:
-1. A `User` entity and auth endpoints
-2. Populating `userId` from the security context in the controllers
-3. Filtering queries by `userId`
+A `User` entity and login/register endpoints are implemented. All other entities include a `userId` field ready for per-user data filtering once session or token-based auth is added to the API layer.

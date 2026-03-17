@@ -1,0 +1,88 @@
+<h2 mat-dialog-title>Add Medication</h2>
+
+<mat-dialog-content>
+
+  <!-- Pending list -->
+  @if (pending.length > 0) {
+    <div class="pending-list">
+      @for (med of pending; track $index) {
+        <div class="pending-item">
+          <div class="pending-info">
+            <span class="pending-name">{{ med.name }}</span>
+            @if (med.dosage) { <span class="pending-dosage">{{ med.dosage }}</span> }
+            <span class="pending-times">{{ med.times.join(', ') }}</span>
+          </div>
+          <button mat-icon-button (click)="removePending($index)" aria-label="Remove">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+    <mat-divider class="divider"></mat-divider>
+  }
+
+  <!-- Form for next entry -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Medication name</mat-label>
+    <input matInput [(ngModel)]="name" placeholder="e.g. Levetiracetam">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Dosage</mat-label>
+    <input matInput [(ngModel)]="dosage" placeholder="e.g. 500mg">
+  </mat-form-field>
+
+  <p class="section-label">Scheduled times</p>
+
+  <div class="time-row">
+    <mat-form-field appearance="outline" class="time-input">
+      <mat-label>Add time</mat-label>
+      <input matInput type="time" [(ngModel)]="newTime" (keyup.enter)="addTime()">
+    </mat-form-field>
+    <button mat-icon-button color="primary" (click)="addTime()" [disabled]="!newTime">
+      <mat-icon>add_circle</mat-icon>
+    </button>
+  </div>
+
+  @if (times.length > 0) {
+    <mat-chip-set class="time-chips">
+      @for (time of times; track time) {
+        <mat-chip (removed)="removeTime(time)">
+          {{ time }}
+          <button matChipRemove><mat-icon>cancel</mat-icon></button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+  }
+
+  <div class="add-to-list-row">
+    <button mat-stroked-button color="primary" (click)="addToList()" [disabled]="!canAddToList">
+      <mat-icon>add</mat-icon> Add to list
+    </button>
+  </div>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="saveAll()" [disabled]="pending.length === 0">
+    Save All ({{ pending.length }})
+  </button>
+</mat-dialog-actions>
+
+<style>
+  .full-width { width: 100%; }
+  .section-label { margin: 4px 0 4px; color: rgba(0,0,0,0.6); font-size: 0.9rem; }
+  .time-row { display: flex; align-items: center; gap: 8px; }
+  .time-input { flex: 1; }
+  .time-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .add-to-list-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+
+  .pending-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+  .pending-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .pending-info { display: flex; flex-direction: column; }
+  .pending-name { font-weight: 500; }
+  .pending-dosage { font-size: 0.85rem; color: rgba(0,0,0,0.54); }
+  .pending-times { font-size: 0.8rem; color: #3f51b5; }
+  .divider { margin-bottom: 16px; }
+</style>

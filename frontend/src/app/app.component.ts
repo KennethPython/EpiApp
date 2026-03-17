@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { CalendarComponent } from './components/calendar/calendar.component';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CalendarComponent],
-  template: `<app-calendar></app-calendar>`
+  imports: [RouterOutlet],
+  template: `<router-outlet></router-outlet>`
 })
 export class AppComponent {}

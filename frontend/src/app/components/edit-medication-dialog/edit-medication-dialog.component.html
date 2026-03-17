@@ -1,0 +1,58 @@
+<h2 mat-dialog-title>Edit Medication</h2>
+
+<mat-dialog-content>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Medication name</mat-label>
+    <input matInput [(ngModel)]="name">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Dosage</mat-label>
+    <input matInput [(ngModel)]="dosage">
+  </mat-form-field>
+
+  <p class="section-label">Scheduled times</p>
+
+  <div class="time-row">
+    <mat-form-field appearance="outline" class="time-input">
+      <mat-label>Add time</mat-label>
+      <input matInput type="time" [(ngModel)]="newTime" (keyup.enter)="addTime()">
+    </mat-form-field>
+    <button mat-icon-button color="primary" (click)="addTime()" [disabled]="!newTime">
+      <mat-icon>add_circle</mat-icon>
+    </button>
+  </div>
+
+  @if (times.length > 0) {
+    <mat-chip-set class="time-chips">
+      @for (time of times; track time) {
+        <mat-chip (removed)="removeTime(time)">
+          {{ time }}
+          <button matChipRemove><mat-icon>cancel</mat-icon></button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+  }
+
+</mat-dialog-content>
+
+<mat-dialog-actions>
+  <button mat-button color="warn" (click)="delete()">
+    <mat-icon>delete</mat-icon> Delete medication
+  </button>
+  <span class="spacer"></span>
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="!canSave">
+    Save
+  </button>
+</mat-dialog-actions>
+
+<style>
+  .full-width { width: 100%; }
+  .section-label { margin: 4px 0 4px; color: rgba(0,0,0,0.6); font-size: 0.9rem; }
+  .time-row { display: flex; align-items: center; gap: 8px; }
+  .time-input { flex: 1; }
+  .time-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .spacer { flex: 1; }
+</style>

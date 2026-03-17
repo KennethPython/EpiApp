@@ -19,9 +19,18 @@ public class MedicationLogController {
     private final MedicationLogRepository medicationLogRepository;
 
     @GetMapping
-    public List<MedicationLog> getByDate(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return medicationLogRepository.findByDate(date);
+    public List<MedicationLog> getLogs(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) String yearMonth) {
+        if (date != null) {
+            return medicationLogRepository.findByDate(date);
+        } else if (yearMonth != null) {
+            String[] parts = yearMonth.split("-");
+            LocalDate start = LocalDate.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), 1);
+            LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+            return medicationLogRepository.findByDateBetween(start, end);
+        }
+        return medicationLogRepository.findAll();
     }
 
     @PostMapping

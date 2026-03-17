@@ -35,6 +35,24 @@
     </mat-form-field>
 
   </form>
+
+  <p class="section-label">Triggers (optional)</p>
+  <div class="trigger-list">
+    @for (opt of triggerOptions; track opt.key) {
+      <mat-checkbox [(ngModel)]="opt.checked">{{ opt.label }}</mat-checkbox>
+    }
+  </div>
+
+  <div class="add-custom-row">
+    <mat-form-field appearance="outline" class="custom-input">
+      <mat-label>Add other trigger</mat-label>
+      <input matInput [(ngModel)]="newCustomLabel" (keyup.enter)="addCustomTrigger()">
+    </mat-form-field>
+    <button mat-icon-button color="primary" (click)="addCustomTrigger()" [disabled]="!newCustomLabel.trim()" aria-label="Add custom trigger">
+      <mat-icon>add_circle</mat-icon>
+    </button>
+  </div>
+
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
@@ -47,4 +65,8 @@
 <style>
   .seizure-form { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
   .full-width { width: 100%; }
+  .section-label { margin: 4px 0 4px; color: rgba(0,0,0,0.6); font-size: 0.9rem; }
+  .trigger-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+  .add-custom-row { display: flex; align-items: center; gap: 4px; }
+  .custom-input { flex: 1; }
 </style>

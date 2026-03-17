@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface MedicationLogRepository extends JpaRepository<MedicationLog, Long> {
     List<MedicationLog> findByDate(LocalDate date);
+    List<MedicationLog> findByDateBetween(LocalDate start, LocalDate end);
     void deleteByMedicationId(Long medicationId);
 }

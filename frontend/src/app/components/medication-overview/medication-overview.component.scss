@@ -1,0 +1,78 @@
+.overview-card {
+  max-width: 720px;
+  margin: 0 auto 24px;
+  border-radius: 12px;
+}
+
+.overview-title {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.time-group {
+  padding: 12px 0 8px;
+}
+
+.time-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.time-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #3f51b5;
+}
+
+.take-all-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.med-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  gap: 12px;
+
+  &.taken {
+    .med-name,
+    .med-dosage {
+      text-decoration: line-through;
+      color: rgba(0, 0, 0, 0.38);
+    }
+  }
+}
+
+.med-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.med-name {
+  font-weight: 500;
+}
+
+.med-dosage {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.taken-at {
+  font-size: 0.8rem;
+  color: #4caf50;
+  font-style: italic;
+}
+
+
+mat-divider {
+  margin-top: 4px;
+}

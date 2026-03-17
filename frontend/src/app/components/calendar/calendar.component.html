@@ -13,7 +13,7 @@
         </button>
       </div>
 
-      <!-- Calendar grid: weekday headers + day cells in one 7-column grid -->
+      <!-- Calendar grid -->
       <div class="calendar-grid">
 
         @for (day of weekdays; track day) {
@@ -30,14 +30,29 @@
             >
               @if (day.date) {
                 <span class="day-number">{{ day.date.getDate() }}</span>
-                <div class="event-dots">
-                  @for (s of day.seizures; track s.id) {
-                    <span class="event-dot seizure" [matTooltip]="'Seizure'"></span>
-                  }
-                  @for (t of day.triggers; track t.id) {
-                    <span class="event-dot trigger" [matTooltip]="triggerLabels[t.type]"></span>
-                  }
-                </div>
+
+                <!-- Seizure bars -->
+                @for (s of day.seizures; track s.id) {
+                  <div class="event-bar seizure" [matTooltip]="'Seizure'"></div>
+                }
+
+                <!-- Trigger bars -->
+                @for (t of day.triggers; track t.id) {
+                  <div class="event-bar trigger" [matTooltip]="triggerLabels[t.type]"></div>
+                }
+
+                <!-- Medication slot circles -->
+                @if (day.medSlots.length > 0) {
+                  <div class="med-slots">
+                    @for (slot of day.medSlots; track slot.time) {
+                      <div
+                        class="med-dot"
+                        [class.taken]="slot.taken"
+                        [matTooltip]="slot.time + (slot.taken ? ' ✓' : '')"
+                      ></div>
+                    }
+                  </div>
+                }
               }
             </div>
           }
@@ -47,10 +62,16 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Add event FAB -->
+  <!-- Action buttons -->
   <div class="fab-container">
-    <button mat-fab color="primary" (click)="openAddDialog()" aria-label="Add event">
+    <button mat-fab color="primary" (click)="openAddDialog()" aria-label="Add seizure or trigger">
       <mat-icon>add</mat-icon>
     </button>
+    <button mat-fab color="accent" (click)="openAddMedicationDialog()" aria-label="Add medication">
+      <mat-icon>medication</mat-icon>
+    </button>
   </div>
+
+  <!-- Medication overview -->
+  <app-medication-overview (medicationsTaken)="loadMedData()"></app-medication-overview>
 </div>

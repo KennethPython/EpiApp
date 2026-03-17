@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,17 +8,28 @@ import { forkJoin } from 'rxjs';
 
 import { SeizureService } from '../../services/seizure.service';
 import { TriggerService } from '../../services/trigger.service';
+import { MedicationService } from '../../services/medication.service';
+import { MedicationLogService } from '../../services/medication-log.service';
 import { Seizure } from '../../models/seizure.model';
 import { Trigger, TRIGGER_LABELS } from '../../models/trigger.model';
+import { Medication, MedicationLog } from '../../models/medication.model';
 import { AddEventDialogComponent } from '../add-event-dialog/add-event-dialog.component';
 import { SeizureFormDialogComponent } from '../seizure-form-dialog/seizure-form-dialog.component';
 import { TriggerFormDialogComponent } from '../trigger-form-dialog/trigger-form-dialog.component';
 import { DayDetailDialogComponent } from '../day-detail-dialog/day-detail-dialog.component';
+import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medication-dialog.component';
+import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
+
+export interface MedSlot {
+  time: string;
+  taken: boolean;
+}
 
 export interface CalendarDay {
   date: Date | null;
   seizures: Seizure[];
   triggers: Trigger[];
+  medSlots: MedSlot[];
 }
 
 @Component({
@@ -29,16 +40,22 @@ export interface CalendarDay {
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MedicationOverviewComponent,
   ],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.scss']
 })
 export class CalendarComponent implements OnInit {
+  @ViewChild(MedicationOverviewComponent) medicationOverview!: MedicationOverviewComponent;
+
   currentYear = new Date().getFullYear();
   currentMonth = new Date().getMonth();
 
   seizures: Seizure[] = [];
   triggers: Trigger[] = [];
+  medications: Medication[] = [];
+  medLogs: MedicationLog[] = [];
+  medTimes: string[] = [];
   weeks: CalendarDay[][] = [];
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -51,6 +68,8 @@ export class CalendarComponent implements OnInit {
   constructor(
     private seizureService: SeizureService,
     private triggerService: TriggerService,
+    private medicationService: MedicationService,
+    private medicationLogService: MedicationLogService,
     private dialog: MatDialog
   ) {}
 
@@ -61,10 +80,27 @@ export class CalendarComponent implements OnInit {
   loadEvents(): void {
     forkJoin({
       seizures: this.seizureService.getAll(),
-      triggers: this.triggerService.getAll()
-    }).subscribe(({ seizures, triggers }) => {
+      triggers: this.triggerService.getAll(),
+      medications: this.medicationService.getAll(),
+      logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
+    }).subscribe(({ seizures, triggers, medications, logs }) => {
       this.seizures = seizures;
       this.triggers = triggers;
+      this.medications = medications;
+      this.medLogs = logs;
+      this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
+      this.buildCalendar();
+    });
+  }
+
+  loadMedData(): void {
+    forkJoin({
+      medications: this.medicationService.getAll(),
+      logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
+    }).subscribe(({ medications, logs }) => {
+      this.medications = medications;
+      this.medLogs = logs;
+      this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
       this.buildCalendar();
     });
   }
@@ -78,7 +114,7 @@ export class CalendarComponent implements OnInit {
     let week: CalendarDay[] = [];
 
     for (let i = 0; i < startDow; i++) {
-      week.push({ date: null, seizures: [], triggers: [] });
+      week.push({ date: null, seizures: [], triggers: [], medSlots: [] });
     }
 
     for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -90,7 +126,15 @@ export class CalendarComponent implements OnInit {
       );
       const dayTriggers = this.triggers.filter(t => t.date === dateStr);
 
-      week.push({ date, seizures: daySeizures, triggers: dayTriggers });
+      const medSlots: MedSlot[] = this.medTimes.map(time => {
+        const medsAtTime = this.medications.filter(m => m.times.includes(time));
+        const taken = medsAtTime.length > 0 && medsAtTime.every(m =>
+          this.medLogs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr)
+        );
+        return { time, taken };
+      });
+
+      week.push({ date, seizures: daySeizures, triggers: dayTriggers, medSlots });
 
       if (week.length === 7) {
         weeks.push(week);
@@ -100,7 +144,7 @@ export class CalendarComponent implements OnInit {
 
     if (week.length > 0) {
       while (week.length < 7) {
-        week.push({ date: null, seizures: [], triggers: [] });
+        week.push({ date: null, seizures: [], triggers: [], medSlots: [] });
       }
       weeks.push(week);
     }
@@ -108,7 +152,6 @@ export class CalendarComponent implements OnInit {
     this.weeks = weeks;
   }
 
-  /** Format a Date as YYYY-MM-DD using local time (avoids UTC drift). */
   localDateString(date: Date): string {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -120,6 +163,10 @@ export class CalendarComponent implements OnInit {
     return `${this.monthNames[this.currentMonth]} ${this.currentYear}`;
   }
 
+  private yearMonthStr(): string {
+    return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
+  }
+
   prevMonth(): void {
     if (this.currentMonth === 0) {
       this.currentMonth = 11;
@@ -127,7 +174,7 @@ export class CalendarComponent implements OnInit {
     } else {
       this.currentMonth--;
     }
-    this.buildCalendar();
+    this.loadMedData();
   }
 
   nextMonth(): void {
@@ -137,7 +184,7 @@ export class CalendarComponent implements OnInit {
     } else {
       this.currentMonth++;
     }
-    this.buildCalendar();
+    this.loadMedData();
   }
 
   openAddDialog(): void {
@@ -151,6 +198,16 @@ export class CalendarComponent implements OnInit {
           .afterClosed().subscribe(saved => { if (saved) this.loadEvents(); });
       }
     });
+  }
+
+  openAddMedicationDialog(): void {
+    this.dialog.open(AddMedicationDialogComponent, { width: '420px' })
+      .afterClosed().subscribe(saved => {
+        if (saved) {
+          this.medicationOverview.loadData();
+          this.loadMedData();
+        }
+      });
   }
 
   openDayDetail(day: CalendarDay): void {

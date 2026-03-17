@@ -29,6 +29,16 @@ public class MedicationController {
         return medicationRepository.save(medication);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Medication> update(@PathVariable Long id, @Valid @RequestBody Medication updated) {
+        return medicationRepository.findById(id).map(existing -> {
+            existing.setName(updated.getName());
+            existing.setDosage(updated.getDosage());
+            existing.setTimes(updated.getTimes());
+            return ResponseEntity.ok(medicationRepository.save(existing));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @Transactional
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
