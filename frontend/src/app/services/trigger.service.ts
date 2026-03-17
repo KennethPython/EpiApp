@@ -13,6 +13,10 @@ export class TriggerService {
     return this.http.get<Trigger[]>(this.apiUrl);
   }
 
+  getBySeizure(seizureId: number): Observable<Trigger[]> {
+    return this.http.get<Trigger[]>(this.apiUrl, { params: { seizureId } });
+  }
+
   create(trigger: Trigger): Observable<Trigger> {
     return this.http.post<Trigger>(this.apiUrl, trigger);
   }

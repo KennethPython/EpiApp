@@ -5,6 +5,7 @@ export interface Trigger {
   date: string; // ISO date: "2024-01-15"
   type: TriggerType;
   label?: string; // custom label when type is OTHER
+  seizureId?: number;
   userId?: string;
 }
 
