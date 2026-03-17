@@ -1,2 +1,3 @@
 # Serve the Angular app for all routes so Netlify doesn't return 404 on direct URL access or page refresh
 /* /index.html 200
+/index.html 200
