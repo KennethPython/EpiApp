@@ -5,12 +5,14 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { mockAuthInterceptor } from './interceptors/mock-auth.interceptor';
+import { apiBaseInterceptor } from './interceptors/api-base.interceptor';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideAnimations(),
     provideHttpClient(withInterceptors([
+      apiBaseInterceptor,
       ...(environment.mockAuth.enabled ? [mockAuthInterceptor] : []),
       errorInterceptor,
     ])),

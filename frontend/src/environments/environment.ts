@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
+  apiUrl: '',
   mockAuth: {
     enabled: true,
     username: 'Kenneth123@',

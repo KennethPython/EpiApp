@@ -3,6 +3,7 @@
 A calendar-based app for logging seizures, triggers, and medications. Built with **Angular 17 + Angular Material** (frontend) and **Spring Boot 3** (backend).
 
 **Live frontend:** https://singular-rolypoly-d1c461.netlify.app/
+**Live backend:** https://epiapp-production.up.railway.app
 
 ---
 
@@ -91,10 +92,21 @@ Set the following environment variables in Railway:
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection URL |
-| `DB_USER` | Database username |
-| `DB_PASSWORD` | Database password |
+| `DATABASE_URL` | PostgreSQL connection URL (auto-set by Railway PostgreSQL plugin) |
+| `PGUSER` | Database username (auto-set by Railway PostgreSQL plugin) |
+| `PGPASSWORD` | Database password (auto-set by Railway PostgreSQL plugin) |
 | `SPRING_PROFILES_ACTIVE` | Set to `prod` to activate the PostgreSQL profile |
+
+### Frontend ↔ Backend Communication
+
+In production, all `/api/*` requests from the Netlify frontend are routed to the Railway backend via an HTTP interceptor (`api-base.interceptor.ts`). The base URL is set per environment:
+
+| Environment | API base URL |
+|---|---|
+| Development | *(empty — proxied via `proxy.conf.json`)* |
+| Production | `https://epiapp-production.up.railway.app` |
+
+> **Note:** The Railway backend must have CORS configured to allow requests from `https://singular-rolypoly-d1c461.netlify.app`.
 
 ---
 
