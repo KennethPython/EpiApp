@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
@@ -9,6 +9,7 @@ import { SeizureService } from '../../services/seizure.service';
 import { TriggerService } from '../../services/trigger.service';
 import { Seizure, SEIZURE_TYPE_LABELS } from '../../models/seizure.model';
 import { Trigger, TRIGGER_LABELS } from '../../models/trigger.model';
+import { SeizureFormDialogComponent, SeizureDialogData } from '../seizure-form-dialog/seizure-form-dialog.component';
 
 export interface DayDetailData {
   date: Date;
@@ -40,7 +41,8 @@ export class DayDetailDialogComponent {
     private dialogRef: MatDialogRef<DayDetailDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DayDetailData,
     private seizureService: SeizureService,
-    private triggerService: TriggerService
+    private triggerService: TriggerService,
+    private dialog: MatDialog
   ) {
     this.seizures = [...data.seizures];
     this.triggers = [...data.triggers];
@@ -67,6 +69,17 @@ export class DayDetailDialogComponent {
     this.triggerService.delete(trigger.id!).subscribe(() => {
       this.triggers = this.triggers.filter(t => t.id !== trigger.id);
       this.changed = true;
+    });
+  }
+
+  seizureTypeLabel(seizure: Seizure): string {
+    return seizure.type ? this.seizureTypeLabels[seizure.type] : 'Seizure';
+  }
+
+  openSeizure(seizure: Seizure): void {
+    this.triggerService.getBySeizure(seizure.id!).subscribe(triggers => {
+      const data: SeizureDialogData = { seizure, triggers };
+      this.dialog.open(SeizureFormDialogComponent, { width: '440px', data });
     });
   }
 

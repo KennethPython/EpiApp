@@ -10,18 +10,11 @@
     <h3 class="section-title seizure-color">Seizures</h3>
     <mat-list>
       @for (seizure of seizures; track seizure.id) {
-        <mat-list-item>
+        <mat-list-item class="seizure-row" (click)="openSeizure(seizure)">
           <mat-icon matListItemIcon class="seizure-color">bolt</mat-icon>
-          <span matListItemTitle>
-            {{ seizure.type ? seizureTypeLabels[seizure.type] : 'Seizure' }}
-          </span>
-          <span matListItemLine>{{ formatTime(seizure.dateTime) }}
-            @if (seizure.durationMinutes) { · {{ seizure.durationMinutes }} min }
-          </span>
-          @if (seizure.notes) {
-            <span matListItemLine class="notes">{{ seizure.notes }}</span>
-          }
-          <button matListItemMeta mat-icon-button (click)="deleteSeizure(seizure)" aria-label="Delete seizure">
+          <span matListItemTitle>{{ seizureTypeLabel(seizure) }}</span>
+          <span matListItemLine>{{ formatTime(seizure.dateTime) }} · <span class="more-info">More info</span></span>
+          <button matListItemMeta mat-icon-button (click)="$event.stopPropagation(); deleteSeizure(seizure)" aria-label="Delete seizure">
             <mat-icon>delete_outline</mat-icon>
           </button>
         </mat-list-item>
@@ -57,5 +50,7 @@
   .section-title { margin: 16px 0 4px; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
   .seizure-color { color: #f44336; }
   .trigger-color { color: #ff9800; }
-  .notes { font-style: italic; color: rgba(0,0,0,0.54); }
+  .seizure-row { cursor: pointer; }
+  .seizure-row:hover { background-color: rgba(244, 67, 54, 0.05); }
+  .more-info { color: #3f51b5; font-size: 0.8rem; }
 </style>
