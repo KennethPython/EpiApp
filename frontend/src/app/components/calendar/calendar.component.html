@@ -31,14 +31,17 @@
               @if (day.date) {
                 <span class="day-number">{{ day.date.getDate() }}</span>
 
-                <!-- Seizure bars -->
-                @for (s of day.seizures; track s.id) {
-                  <div class="event-bar seizure" [matTooltip]="'Seizure'"></div>
+                <!-- Event bars (max 5, seizures + triggers combined) -->
+                @for (e of day.visibleEvents; track e.id) {
+                  <div class="event-bar"
+                    [class.seizure]="e.kind === 'seizure'"
+                    [class.trigger]="e.kind === 'trigger'"
+                    [matTooltip]="e.label">
+                    {{ truncate(e.label) }}
+                  </div>
                 }
-
-                <!-- Trigger bars -->
-                @for (t of day.triggers; track t.id) {
-                  <div class="event-bar trigger" [matTooltip]="triggerLabels[t.type]"></div>
+                @if (day.hiddenCount > 0) {
+                  <div class="event-overflow">+{{ day.hiddenCount }} more</div>
                 }
 
                 <!-- Medication slot circles -->

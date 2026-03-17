@@ -10,7 +10,7 @@ import { SeizureService } from '../../services/seizure.service';
 import { TriggerService } from '../../services/trigger.service';
 import { MedicationService } from '../../services/medication.service';
 import { MedicationLogService } from '../../services/medication-log.service';
-import { Seizure } from '../../models/seizure.model';
+import { Seizure, SEIZURE_TYPE_LABELS } from '../../models/seizure.model';
 import { Trigger, TRIGGER_LABELS } from '../../models/trigger.model';
 import { Medication, MedicationLog } from '../../models/medication.model';
 import { AddEventDialogComponent } from '../add-event-dialog/add-event-dialog.component';
@@ -25,11 +25,19 @@ export interface MedSlot {
   taken: boolean;
 }
 
+export interface CalendarEvent {
+  kind: 'seizure' | 'trigger';
+  id: number;
+  label: string;
+}
+
 export interface CalendarDay {
   date: Date | null;
   seizures: Seizure[];
   triggers: Trigger[];
   medSlots: MedSlot[];
+  visibleEvents: CalendarEvent[];
+  hiddenCount: number;
 }
 
 @Component({
@@ -64,6 +72,15 @@ export class CalendarComponent implements OnInit {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   readonly triggerLabels = TRIGGER_LABELS;
+  readonly seizureLabels = SEIZURE_TYPE_LABELS;
+
+  truncate(text: string, max = 6): string {
+    return text && text.length > max ? text.slice(0, max) + '...' : (text ?? '');
+  }
+
+  seizureLabel(s: Seizure): string {
+    return s.type ? this.seizureLabels[s.type] : 'Seizure';
+  }
 
   constructor(
     private seizureService: SeizureService,
@@ -113,8 +130,11 @@ export class CalendarComponent implements OnInit {
     const weeks: CalendarDay[][] = [];
     let week: CalendarDay[] = [];
 
+    const emptyDay = (): CalendarDay =>
+      ({ date: null, seizures: [], triggers: [], medSlots: [], visibleEvents: [], hiddenCount: 0 });
+
     for (let i = 0; i < startDow; i++) {
-      week.push({ date: null, seizures: [], triggers: [], medSlots: [] });
+      week.push(emptyDay());
     }
 
     for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -134,7 +154,14 @@ export class CalendarComponent implements OnInit {
         return { time, taken };
       });
 
-      week.push({ date, seizures: daySeizures, triggers: dayTriggers, medSlots });
+      const allEvents: CalendarEvent[] = [
+        ...daySeizures.map(s => ({ kind: 'seizure' as const, id: s.id!, label: this.seizureLabel(s) })),
+        ...dayTriggers.map(t => ({ kind: 'trigger' as const, id: t.id!, label: this.triggerLabels[t.type] })),
+      ];
+      const visibleEvents = allEvents.slice(0, 5);
+      const hiddenCount = Math.max(0, allEvents.length - 5);
+
+      week.push({ date, seizures: daySeizures, triggers: dayTriggers, medSlots, visibleEvents, hiddenCount });
 
       if (week.length === 7) {
         weeks.push(week);
@@ -144,7 +171,7 @@ export class CalendarComponent implements OnInit {
 
     if (week.length > 0) {
       while (week.length < 7) {
-        week.push({ date: null, seizures: [], triggers: [], medSlots: [] });
+        week.push(emptyDay());
       }
       weeks.push(week);
     }
