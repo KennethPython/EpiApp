@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Add Seizure</h2>
+<h2 mat-dialog-title>{{ viewMode ? 'Seizure Details' : 'Add Seizure' }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="seizure-form">
@@ -6,7 +6,9 @@
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Date</mat-label>
       <input matInput [matDatepicker]="picker" formControlName="date">
-      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      @if (!viewMode) {
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      }
       <mat-datepicker #picker></mat-datepicker>
     </mat-form-field>
 
@@ -36,30 +38,43 @@
 
   </form>
 
-  <p class="section-label">Triggers (optional)</p>
-  <div class="trigger-list">
-    @for (opt of triggerOptions; track opt.key) {
-      <mat-checkbox [(ngModel)]="opt.checked">{{ opt.label }}</mat-checkbox>
-    }
-  </div>
+  @if (viewMode && viewTriggers.length > 0) {
+    <p class="section-label">Triggers</p>
+    <div class="trigger-list">
+      @for (t of viewTriggers; track t.id) {
+        <span class="view-trigger">{{ getTriggerLabel(t) }}</span>
+      }
+    </div>
+  }
 
-  <div class="add-custom-row">
-    <mat-form-field appearance="outline" class="custom-input">
-      <mat-label>Add other trigger</mat-label>
-      <input matInput [(ngModel)]="newCustomLabel" (keyup.enter)="addCustomTrigger()">
-    </mat-form-field>
-    <button mat-icon-button color="primary" (click)="addCustomTrigger()" [disabled]="!newCustomLabel.trim()" aria-label="Add custom trigger">
-      <mat-icon>add_circle</mat-icon>
-    </button>
-  </div>
+  @if (!viewMode) {
+    <p class="section-label">Triggers (optional)</p>
+    <div class="trigger-list">
+      @for (opt of triggerOptions; track opt.key) {
+        <mat-checkbox [(ngModel)]="opt.checked">{{ opt.label }}</mat-checkbox>
+      }
+    </div>
+
+    <div class="add-custom-row">
+      <mat-form-field appearance="outline" class="custom-input">
+        <mat-label>Add other trigger</mat-label>
+        <input matInput [(ngModel)]="newCustomLabel" (keyup.enter)="addCustomTrigger()">
+      </mat-form-field>
+      <button mat-icon-button color="primary" (click)="addCustomTrigger()" [disabled]="!newCustomLabel.trim()" aria-label="Add custom trigger">
+        <mat-icon>add_circle</mat-icon>
+      </button>
+    </div>
+  }
 
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="cancel()">Cancel</button>
-  <button mat-raised-button color="warn" (click)="submit()" [disabled]="form.invalid">
-    Add Seizure
-  </button>
+  <button mat-button (click)="cancel()">{{ viewMode ? 'Close' : 'Cancel' }}</button>
+  @if (!viewMode) {
+    <button mat-raised-button color="warn" (click)="submit()" [disabled]="form.invalid">
+      Add Seizure
+    </button>
+  }
 </mat-dialog-actions>
 
 <style>
@@ -69,4 +84,5 @@
   .trigger-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
   .add-custom-row { display: flex; align-items: center; gap: 4px; }
   .custom-input { flex: 1; }
+  .view-trigger { font-size: 0.9rem; color: rgba(0,0,0,0.75); padding: 2px 0; }
 </style>

@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Optional, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -11,13 +11,18 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
 
 import { SeizureService } from '../../services/seizure.service';
 import { TriggerService } from '../../services/trigger.service';
 import { CustomTriggerOptionService } from '../../services/custom-trigger-option.service';
-import { SeizureType, SEIZURE_TYPE_LABELS } from '../../models/seizure.model';
-import { TRIGGER_LABELS } from '../../models/trigger.model';
+import { Seizure, SeizureType, SEIZURE_TYPE_LABELS } from '../../models/seizure.model';
+import { Trigger, TRIGGER_LABELS } from '../../models/trigger.model';
+
+export interface SeizureDialogData {
+  seizure: Seizure;
+  triggers?: Trigger[];
+}
 
 interface TriggerOption {
   id?: number;
@@ -49,6 +54,7 @@ interface TriggerOption {
 export class SeizureFormDialogComponent implements OnInit {
   form: FormGroup;
   newCustomLabel = '';
+  viewMode = false;
 
   readonly seizureTypes: { value: SeizureType; label: string }[] = (
     Object.entries(SEIZURE_TYPE_LABELS) as [SeizureType, string][]
@@ -60,23 +66,42 @@ export class SeizureFormDialogComponent implements OnInit {
     { key: 'MEDICATION', label: TRIGGER_LABELS['MEDICATION'], isCustom: false, checked: false },
   ];
 
+  viewTriggers: Trigger[] = [];
+
   constructor(
     private dialogRef: MatDialogRef<SeizureFormDialogComponent>,
     private fb: FormBuilder,
     private seizureService: SeizureService,
     private triggerService: TriggerService,
-    private customOptionService: CustomTriggerOptionService
+    private customOptionService: CustomTriggerOptionService,
+    @Optional() @Inject(MAT_DIALOG_DATA) private dialogData: SeizureDialogData | null
   ) {
-    this.form = this.fb.group({
-      date: [new Date(), Validators.required],
-      time: [this.nowTimeString(), Validators.required],
-      durationMinutes: [null, [Validators.min(1)]],
-      type: [null],
-      notes: ['']
-    });
+    const existingSeizure = dialogData?.seizure ?? null;
+    if (existingSeizure?.id) {
+      this.viewMode = true;
+      this.viewTriggers = dialogData?.triggers ?? [];
+      const dt = new Date(existingSeizure.dateTime);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      this.form = this.fb.group({
+        date: [{ value: dt, disabled: true }, Validators.required],
+        time: [{ value: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`, disabled: true }, Validators.required],
+        durationMinutes: [{ value: existingSeizure.durationMinutes ?? null, disabled: true }],
+        type: [{ value: existingSeizure.type ?? null, disabled: true }],
+        notes: [{ value: existingSeizure.notes ?? '', disabled: true }],
+      });
+    } else {
+      this.form = this.fb.group({
+        date: [new Date(), Validators.required],
+        time: [this.nowTimeString(), Validators.required],
+        durationMinutes: [null, [Validators.min(1)]],
+        type: [null],
+        notes: [''],
+      });
+    }
   }
 
   ngOnInit(): void {
+    if (this.viewMode) return;
     this.customOptionService.getAll().subscribe(customs => {
       customs.forEach(c => this.triggerOptions.push({
         id: c.id,
@@ -86,6 +111,11 @@ export class SeizureFormDialogComponent implements OnInit {
         checked: false,
       }));
     });
+  }
+
+  getTriggerLabel(trigger: Trigger): string {
+    if (trigger.type === 'OTHER' && trigger.label) return trigger.label;
+    return TRIGGER_LABELS[trigger.type];
   }
 
   addCustomTrigger(): void {
@@ -112,31 +142,32 @@ export class SeizureFormDialogComponent implements OnInit {
 
   submit(): void {
     if (this.form.invalid) return;
-    const { date, time, durationMinutes, type, notes } = this.form.value;
+    const { date, time, durationMinutes, type, notes } = this.form.getRawValue();
     const [h, m] = (time as string).split(':').map(Number);
     const dt = new Date(date as Date);
     dt.setHours(h, m, 0, 0);
 
-    const seizure$ = this.seizureService.create({
+    const dateStr = this.toDateStr(dt);
+    const selectedTriggers = this.triggerOptions.filter(o => o.checked);
+
+    this.seizureService.create({
       dateTime: this.toLocalIso(dt),
       durationMinutes: durationMinutes ?? undefined,
       type: type ?? undefined,
       notes: notes || undefined,
-    });
-
-    const dateStr = this.toDateStr(dt);
-    const selectedTriggers = this.triggerOptions.filter(o => o.checked);
-    const trigger$s = selectedTriggers.map(o =>
-      this.triggerService.create({
-        date: dateStr,
-        type: o.isCustom ? 'OTHER' : o.key as any,
-        label: o.isCustom ? o.label : undefined,
+    }).pipe(
+      switchMap(savedSeizure => {
+        if (selectedTriggers.length === 0) return of(null);
+        return forkJoin(selectedTriggers.map(o =>
+          this.triggerService.create({
+            date: dateStr,
+            type: o.isCustom ? 'OTHER' : o.key as any,
+            label: o.isCustom ? o.label : undefined,
+            seizureId: savedSeizure.id,
+          })
+        ));
       })
-    );
-
-    forkJoin([seizure$, ...(trigger$s.length ? trigger$s : [of(null)])]).subscribe(
-      () => this.dialogRef.close(true)
-    );
+    ).subscribe(() => this.dialogRef.close(true));
   }
 
   cancel(): void {
