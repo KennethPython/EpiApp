@@ -108,6 +108,80 @@
   border-radius: 12px;
 }
 
+.card-header-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.header-spacer {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.settings-btn {
+  flex-shrink: 0;
+
+  &.active {
+    color: #3f51b5;
+  }
+}
+
+.view-toggle {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.settings-panel {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.color-settings {
+  padding: 8px 16px 12px;
+}
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.1s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.color-label {
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.color-swatch-dot {
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+}
+
+.color-swatch-missed {
+  background-color: transparent !important;
+  border: 2px solid;
+}
+
 .month-nav {
   display: flex;
   align-items: center;
@@ -219,12 +293,6 @@
   margin-bottom: 24px;
 }
 
-.view-toggle {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
 // ── Year view ─────────────────────────────────────────────────
 .year-grid {
   display: grid;
@@ -310,22 +378,14 @@
   height: 4px;
 }
 
-// ── Responsive: hide sidebar on small screens ─────────────────
+// ── Responsive: hide sidebar on mobile ───────────────────────
 @media (max-width: 680px) {
   .page-layout {
     flex-direction: column;
+    padding: 0 8px;
   }
 
   .sidebar {
-    width: 100%;
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .sidebar-mini-cal,
-  .sidebar-legend {
-    flex: 1;
-    min-width: 160px;
+    display: none;
   }
 }

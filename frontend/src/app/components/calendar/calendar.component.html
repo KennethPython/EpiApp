@@ -1,6 +1,14 @@
 <div class="page-layout">
 
-  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <!-- Hidden color inputs (single source of truth, always in DOM) -->
+  <input #seizureInput type="color" [value]="colors.seizure"
+         (input)="updateColor('seizure', $event)" class="color-input-hidden">
+  <input #triggerInput type="color" [value]="colors.trigger"
+         (input)="updateColor('trigger', $event)" class="color-input-hidden">
+  <input #medInput type="color" [value]="colors.med"
+         (input)="updateColor('med', $event)" class="color-input-hidden">
+
+  <!-- ── Sidebar (desktop only) ───────────────────────────── -->
   <aside class="sidebar">
 
     <!-- Mini calendar: always shows today's real month -->
@@ -39,28 +47,22 @@
     <div class="sidebar-legend">
       <h4 class="legend-title">Legend</h4>
 
-      <div class="legend-item" (click)="seizureInput.click()">
+      <div class="legend-item" (click)="openColorPicker('seizure')">
         <span class="legend-swatch" [style.background-color]="colors.seizure"></span>
         <span class="legend-label">Seizure</span>
       </div>
-      <input #seizureInput type="color" [value]="colors.seizure"
-             (input)="updateColor('seizure', $event)" class="color-input-hidden">
 
-      <div class="legend-item" (click)="triggerInput.click()">
+      <div class="legend-item" (click)="openColorPicker('trigger')">
         <span class="legend-swatch" [style.background-color]="colors.trigger"></span>
         <span class="legend-label">Trigger</span>
       </div>
-      <input #triggerInput type="color" [value]="colors.trigger"
-             (input)="updateColor('trigger', $event)" class="color-input-hidden">
 
-      <div class="legend-item" (click)="medInput.click()">
+      <div class="legend-item" (click)="openColorPicker('med')">
         <span class="legend-swatch legend-swatch-dot" [style.background-color]="colors.med"></span>
         <span class="legend-label">Medication taken</span>
       </div>
-      <input #medInput type="color" [value]="colors.med"
-             (input)="updateColor('med', $event)" class="color-input-hidden">
 
-      <div class="legend-item" (click)="medInput.click()">
+      <div class="legend-item" (click)="openColorPicker('med')">
         <span class="legend-swatch legend-swatch-dot legend-swatch-missed"
               [style.border-color]="colors.med"></span>
         <span class="legend-label">Medication missed</span>
@@ -74,13 +76,56 @@
     <mat-card class="calendar-card">
       <mat-card-content>
 
-        <!-- View toggle -->
-        <div class="view-toggle">
-          <mat-button-toggle-group [value]="view" (change)="setView($event.value)">
-            <mat-button-toggle value="month">Month</mat-button-toggle>
-            <mat-button-toggle value="year">Year</mat-button-toggle>
-          </mat-button-toggle-group>
+        <!-- Card header row: settings button + view toggle -->
+        <div class="card-header-row">
+          <button mat-icon-button class="settings-btn"
+                  [class.active]="showSettings"
+                  (click)="showSettings = !showSettings"
+                  aria-label="Settings">
+            <mat-icon>menu</mat-icon>
+          </button>
+          <div class="view-toggle">
+            <mat-button-toggle-group [value]="view" (change)="setView($event.value)">
+              <mat-button-toggle value="month">Month</mat-button-toggle>
+              <mat-button-toggle value="year">Year</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+          <div class="header-spacer"></div>
         </div>
+
+        <!-- Settings panel (slides in below header) -->
+        @if (showSettings) {
+          <div class="settings-panel">
+            <mat-tab-group>
+              <mat-tab label="Colors">
+                <div class="color-settings">
+
+                  <div class="color-row" (click)="openColorPicker('seizure')">
+                    <span class="color-swatch" [style.background-color]="colors.seizure"></span>
+                    <span class="color-label">Seizure</span>
+                  </div>
+
+                  <div class="color-row" (click)="openColorPicker('trigger')">
+                    <span class="color-swatch" [style.background-color]="colors.trigger"></span>
+                    <span class="color-label">Trigger</span>
+                  </div>
+
+                  <div class="color-row" (click)="openColorPicker('med')">
+                    <span class="color-swatch color-swatch-dot" [style.background-color]="colors.med"></span>
+                    <span class="color-label">Medication taken</span>
+                  </div>
+
+                  <div class="color-row" (click)="openColorPicker('med')">
+                    <span class="color-swatch color-swatch-dot color-swatch-missed"
+                          [style.border-color]="colors.med"></span>
+                    <span class="color-label">Medication missed</span>
+                  </div>
+
+                </div>
+              </mat-tab>
+            </mat-tab-group>
+          </div>
+        }
 
         <!-- MONTH VIEW -->
         @if (view === 'month') {

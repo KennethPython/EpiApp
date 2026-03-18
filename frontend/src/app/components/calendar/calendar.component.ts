@@ -1,9 +1,10 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialog } from '@angular/material/dialog';
 import { forkJoin } from 'rxjs';
 
@@ -71,6 +72,7 @@ const COLOR_STORAGE_KEY = 'epiapp_colors';
     MatIconModule,
     MatTooltipModule,
     MatButtonToggleModule,
+    MatTabsModule,
     MedicationOverviewComponent,
   ],
   templateUrl: './calendar.component.html',
@@ -78,8 +80,12 @@ const COLOR_STORAGE_KEY = 'epiapp_colors';
 })
 export class CalendarComponent implements OnInit {
   @ViewChild(MedicationOverviewComponent) medicationOverview!: MedicationOverviewComponent;
+  @ViewChild('seizureInput') seizureInputEl!: ElementRef<HTMLInputElement>;
+  @ViewChild('triggerInput') triggerInputEl!: ElementRef<HTMLInputElement>;
+  @ViewChild('medInput') medInputEl!: ElementRef<HTMLInputElement>;
 
   view: 'month' | 'year' = 'month';
+  showSettings = false;
 
   currentYear = new Date().getFullYear();
   currentMonth = new Date().getMonth();
@@ -123,6 +129,11 @@ export class CalendarComponent implements OnInit {
   updateColor(key: 'seizure' | 'trigger' | 'med', event: Event): void {
     this.colors[key] = (event.target as HTMLInputElement).value;
     localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(this.colors));
+  }
+
+  openColorPicker(type: 'seizure' | 'trigger' | 'med'): void {
+    const map = { seizure: this.seizureInputEl, trigger: this.triggerInputEl, med: this.medInputEl };
+    map[type]?.nativeElement.click();
   }
 
   private loadColors(): void {
