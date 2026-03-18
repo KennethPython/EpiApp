@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -129,6 +129,11 @@ export class CalendarComponent implements OnInit {
   updateColor(key: 'seizure' | 'trigger' | 'med', event: Event): void {
     this.colors[key] = (event.target as HTMLInputElement).value;
     localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(this.colors));
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    if (window.innerWidth >= 681) this.showSettings = false;
   }
 
   openColorPicker(type: 'seizure' | 'trigger' | 'med'): void {

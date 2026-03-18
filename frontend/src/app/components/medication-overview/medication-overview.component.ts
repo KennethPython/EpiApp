@@ -2,7 +2,6 @@ import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
 import { forkJoin } from 'rxjs';
 
@@ -28,8 +27,7 @@ interface TimeGroup {
     MatButtonModule,
     MatIconModule,
     MatCardModule,
-    MatDividerModule,
-    EditMedicationDialogComponent,
+EditMedicationDialogComponent,
   ],
   templateUrl: './medication-overview.component.html',
   styleUrls: ['./medication-overview.component.scss'],

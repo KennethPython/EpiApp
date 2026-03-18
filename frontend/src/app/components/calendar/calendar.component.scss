@@ -67,6 +67,16 @@
   }
 }
 
+.legend-edit-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  color: rgba(0, 0, 0, 0.35);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .legend-label {
   font-size: 0.78rem;
   color: rgba(0, 0, 0, 0.7);
