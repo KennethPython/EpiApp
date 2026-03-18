@@ -11,6 +11,38 @@
   <!-- ── Sidebar (desktop only) ───────────────────────────── -->
   <aside class="sidebar">
 
+    <!-- Mini calendar: always shows today's real month -->
+    @if (sidebarMonthGrid) {
+      <div class="sidebar-mini-cal">
+        <div class="sidebar-mini-header">{{ sidebarMonthLabel }}</div>
+        <div class="mini-cal-grid">
+          @for (h of miniWeekdays; track $index) {
+            <div class="mini-wday">{{ h }}</div>
+          }
+          @for (cell of sidebarMonthGrid.cells; track $index) {
+            @if (cell) {
+              <div class="mini-day-cell"
+                   [class.today]="cell.isToday"
+                   (click)="openDayDetailFromSidebar(cell)">
+                <span class="mini-day-num">{{ cell.dayNum }}</span>
+                @if (!cell.isFuture && !cell.isToday) {
+                  @if (cell.hasSeizure) {
+                    <span class="mini-dot" [style.background-color]="colors.seizure"></span>
+                  } @else if (cell.hasMeds && cell.allMedsTaken) {
+                    <span class="mini-dot" [style.background-color]="colors.med"></span>
+                  } @else if (cell.hasMeds && !cell.allMedsTaken) {
+                    <span class="mini-dot mini-dot-missed" [style.border-color]="colors.med"></span>
+                  }
+                }
+              </div>
+            } @else {
+              <div class="mini-day-cell empty"></div>
+            }
+          }
+        </div>
+      </div>
+    }
+
     <!-- Legend -->
     <div class="sidebar-legend">
       <h4 class="legend-title">Legend</h4>

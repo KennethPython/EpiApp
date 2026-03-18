@@ -100,6 +100,9 @@ export class CalendarComponent implements OnInit {
   yearMonths: YearMonthGrid[] = [];
   yearMedLogs: MedicationLog[] = [];
 
+  sidebarMonthGrid: YearMonthGrid | null = null;
+  sidebarMedLogs: MedicationLog[] = [];
+
   colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50' };
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -158,19 +161,27 @@ export class CalendarComponent implements OnInit {
     this.loadEvents();
   }
 
+  private get todayMonthStr(): string {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
+  }
+
   loadEvents(): void {
     forkJoin({
       seizures: this.seizureService.getAll(),
       triggers: this.triggerService.getAll(),
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
-    }).subscribe(({ seizures, triggers, medications, logs }) => {
+      sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
+    }).subscribe(({ seizures, triggers, medications, logs, sidebarLogs }) => {
       this.seizures = seizures;
       this.triggers = triggers;
       this.medications = medications;
       this.medLogs = logs;
+      this.sidebarMedLogs = sidebarLogs;
       this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
       this.buildCalendar();
+      this.buildSidebarMonth();
     });
   }
 
@@ -178,11 +189,14 @@ export class CalendarComponent implements OnInit {
     forkJoin({
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
-    }).subscribe(({ medications, logs }) => {
+      sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
+    }).subscribe(({ medications, logs, sidebarLogs }) => {
       this.medications = medications;
       this.medLogs = logs;
+      this.sidebarMedLogs = sidebarLogs;
       this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
       this.buildCalendar();
+      this.buildSidebarMonth();
     });
   }
 
@@ -249,6 +263,13 @@ export class CalendarComponent implements OnInit {
     );
   }
 
+  buildSidebarMonth(): void {
+    const today = new Date();
+    this.sidebarMonthGrid = this.buildMonthGrid(
+      today.getFullYear(), today.getMonth(), this.sidebarMedLogs
+    );
+  }
+
   buildCalendar(): void {
     const firstDay = new Date(this.currentYear, this.currentMonth, 1);
     const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
@@ -312,6 +333,11 @@ export class CalendarComponent implements OnInit {
     return `${this.monthNames[this.currentMonth]} ${this.currentYear}`;
   }
 
+  get sidebarMonthLabel(): string {
+    const t = new Date();
+    return `${this.monthNames[t.getMonth()]} ${t.getFullYear()}`;
+  }
+
   private yearMonthStr(): string {
     return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
   }
@@ -364,6 +390,13 @@ export class CalendarComponent implements OnInit {
       width: '420px',
       data: { date: cell.date, seizures: cell.seizures, triggers: cell.triggers }
     }).afterClosed().subscribe(changed => { if (changed) this.loadYearEvents(); });
+  }
+
+  openDayDetailFromSidebar(cell: YearDayCell): void {
+    this.dialog.open(DayDetailDialogComponent, {
+      width: '420px',
+      data: { date: cell.date, seizures: cell.seizures, triggers: cell.triggers }
+    }).afterClosed().subscribe(changed => { if (changed) this.loadEvents(); });
   }
 
   isToday(date: Date | null): boolean {
