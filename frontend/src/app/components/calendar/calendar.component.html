@@ -13,7 +13,6 @@
       <!-- MONTH VIEW -->
       @if (view === 'month') {
 
-        <!-- Month navigation -->
         <div class="month-nav">
           <button mat-icon-button (click)="prevMonth()" aria-label="Previous month">
             <mat-icon>chevron_left</mat-icon>
@@ -24,7 +23,6 @@
           </button>
         </div>
 
-        <!-- Calendar grid -->
         <div class="calendar-grid">
 
           @for (day of weekdays; track day) {
@@ -77,7 +75,6 @@
       <!-- YEAR VIEW -->
       @if (view === 'year') {
 
-        <!-- Year navigation -->
         <div class="month-nav">
           <button mat-icon-button (click)="prevYear()" aria-label="Previous year">
             <mat-icon>chevron_left</mat-icon>
@@ -88,30 +85,37 @@
           </button>
         </div>
 
-        <div class="year-view">
-          @for (m of yearActivities; track m.month) {
-            <div class="year-month-section">
-              <h3 class="year-month-header">{{ m.monthName }}</h3>
-              @for (day of m.days; track day.dateStr) {
-                <div class="year-day-row" (click)="openDayDetailFromYear(day)">
-                  <span class="year-day-date">{{ formatYearDay(day.date) }}</span>
-                  <div class="year-day-tags">
-                    @for (s of day.seizures; track s.id) {
-                      <span class="year-tag seizure">{{ seizureLabel(s) }}</span>
-                    }
-                    @for (t of day.triggers; track t.id) {
-                      <span class="year-tag trigger">{{ triggerLabel(t) }}</span>
-                    }
-                    @if (day.hasMissedMed) {
-                      <span class="year-tag missed">Missed meds</span>
-                    }
-                  </div>
-                </div>
-              }
+        <div class="year-grid">
+          @for (m of yearMonths; track m.month) {
+            <div class="mini-month">
+              <div class="mini-month-name">{{ m.monthName }}</div>
+              <div class="mini-cal-grid">
+
+                @for (h of miniWeekdays; track $index) {
+                  <div class="mini-wday">{{ h }}</div>
+                }
+
+                @for (cell of m.cells; track $index) {
+                  @if (cell) {
+                    <div class="mini-day-cell"
+                         [class.today]="cell.isToday"
+                         (click)="openDayDetailFromCell(cell)">
+                      <span class="mini-day-num">{{ cell.dayNum }}</span>
+                      @if (!cell.isFuture && !cell.isToday) {
+                        <span class="mini-dot"
+                          [class.red]="cell.hasSeizure"
+                          [class.green]="!cell.hasSeizure && cell.hasMeds && cell.allMedsTaken"
+                          [class.missed]="!cell.hasSeizure && cell.hasMeds && !cell.allMedsTaken">
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <div class="mini-day-cell empty"></div>
+                  }
+                }
+
+              </div>
             </div>
-          }
-          @if (yearActivities.length === 0) {
-            <p class="year-empty">No activity recorded in {{ currentYear }}.</p>
           }
         </div>
 
@@ -132,7 +136,6 @@
     </button>
   </div>
 
-  <!-- Medication overview (month view only) -->
   @if (view === 'month') {
     <app-medication-overview (medicationsTaken)="loadMedData()"></app-medication-overview>
   }

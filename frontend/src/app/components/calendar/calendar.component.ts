@@ -41,18 +41,23 @@ export interface CalendarDay {
   hiddenCount: number;
 }
 
-export interface YearActivityDay {
+export interface YearDayCell {
   date: Date;
   dateStr: string;
+  dayNum: number;
+  isToday: boolean;
+  isFuture: boolean;
+  hasSeizure: boolean;
+  hasMeds: boolean;
+  allMedsTaken: boolean;
   seizures: Seizure[];
   triggers: Trigger[];
-  hasMissedMed: boolean;
 }
 
-export interface YearActivity {
+export interface YearMonthGrid {
   month: number;
   monthName: string;
-  days: YearActivityDay[];
+  cells: (YearDayCell | null)[];
 }
 
 @Component({
@@ -84,10 +89,11 @@ export class CalendarComponent implements OnInit {
   medTimes: string[] = [];
   weeks: CalendarDay[][] = [];
 
-  yearActivities: YearActivity[] = [];
+  yearMonths: YearMonthGrid[] = [];
   yearMedLogs: MedicationLog[] = [];
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  readonly miniWeekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   readonly monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -105,10 +111,6 @@ export class CalendarComponent implements OnInit {
 
   triggerLabel(t: Trigger): string {
     return t.type === 'OTHER' && t.label ? t.label : this.triggerLabels[t.type];
-  }
-
-  formatYearDay(date: Date): string {
-    return `${date.getDate()} ${this.monthNames[date.getMonth()].slice(0, 3)}`;
   }
 
   constructor(
@@ -165,49 +167,56 @@ export class CalendarComponent implements OnInit {
     forkJoin(months.map(m => this.medicationLogService.getByMonth(m)))
       .subscribe(logsPerMonth => {
         this.yearMedLogs = logsPerMonth.flat();
-        this.buildYearActivities();
+        this.buildYearMonths();
       });
   }
 
-  buildYearActivities(): void {
+  buildYearMonths(): void {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const result: YearActivity[] = [];
+    const todayStr = this.localDateString(today);
 
-    for (let month = 0; month < 12; month++) {
-      const lastDay = new Date(this.currentYear, month + 1, 0).getDate();
-      const days: YearActivityDay[] = [];
+    this.yearMonths = this.monthNames.map((monthName, month) => {
+      const firstDay = new Date(this.currentYear, month, 1);
+      const lastDay = new Date(this.currentYear, month + 1, 0);
+      const startDow = firstDay.getDay();
 
-      for (let d = 1; d <= lastDay; d++) {
+      const cells: (YearDayCell | null)[] = [];
+
+      for (let i = 0; i < startDow; i++) {
+        cells.push(null);
+      }
+
+      for (let d = 1; d <= lastDay.getDate(); d++) {
         const date = new Date(this.currentYear, month, d);
         const dateStr = this.localDateString(date);
+        const isToday = dateStr === todayStr;
+        const isFuture = date > today;
 
         const seizures = this.seizures.filter(s =>
           this.localDateString(new Date(s.dateTime)) === dateStr
         );
         const triggers = this.triggers.filter(t => t.date === dateStr);
+        const hasSeizure = seizures.length > 0;
+        const hasMeds = this.medTimes.length > 0;
 
-        const hasMissedMed = date < today && this.medTimes.length > 0 &&
-          this.medTimes.some(time => {
+        let allMedsTaken = false;
+        if (hasMeds && !isFuture && !isToday) {
+          allMedsTaken = this.medTimes.every(time => {
             const medsAtTime = this.medications.filter(m => m.times.includes(time));
-            return medsAtTime.length > 0 && !medsAtTime.every(m =>
+            return medsAtTime.length === 0 || medsAtTime.every(m =>
               this.yearMedLogs.some(l =>
                 l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr
               )
             );
           });
-
-        if (seizures.length > 0 || triggers.length > 0 || hasMissedMed) {
-          days.push({ date, dateStr, seizures, triggers, hasMissedMed });
         }
+
+        cells.push({ date, dateStr, dayNum: d, isToday, isFuture, hasSeizure, hasMeds, allMedsTaken, seizures, triggers });
       }
 
-      if (days.length > 0) {
-        result.push({ month, monthName: this.monthNames[month], days });
-      }
-    }
-
-    this.yearActivities = result;
+      return { month, monthName, cells };
+    });
   }
 
   buildCalendar(): void {
@@ -343,10 +352,10 @@ export class CalendarComponent implements OnInit {
     }).afterClosed().subscribe(changed => { if (changed) this.loadEvents(); });
   }
 
-  openDayDetailFromYear(day: YearActivityDay): void {
+  openDayDetailFromCell(cell: YearDayCell): void {
     this.dialog.open(DayDetailDialogComponent, {
       width: '420px',
-      data: { date: day.date, seizures: day.seizures, triggers: day.triggers }
+      data: { date: cell.date, seizures: cell.seizures, triggers: cell.triggers }
     }).afterClosed().subscribe(changed => { if (changed) this.loadYearEvents(); });
   }
 
