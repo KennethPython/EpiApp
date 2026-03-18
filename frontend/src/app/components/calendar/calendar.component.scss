@@ -1,7 +1,107 @@
-.calendar-wrapper {
-  max-width: 720px;
+// ── Page layout ───────────────────────────────────────────────
+.page-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  max-width: 1020px;
   margin: 24px auto;
   padding: 0 16px;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-mini-cal {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-mini-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+  color: rgba(0, 0, 0, 0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sidebar-legend {
+  background: white;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.legend-title {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.1s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.legend-label {
+  font-size: 0.78rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legend-swatch-dot {
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  margin: 2px;
+}
+
+.legend-swatch-missed {
+  background-color: transparent !important;
+  border: 2px solid currentColor;
+}
+
+.color-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+// ── Main content ──────────────────────────────────────────────
+.main-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .calendar-card {
@@ -86,14 +186,6 @@
   color: white;
   white-space: nowrap;
   overflow: hidden;
-
-  &.seizure {
-    background-color: #f44336;
-  }
-
-  &.trigger {
-    background-color: #ff9800;
-  }
 }
 
 .event-overflow {
@@ -114,13 +206,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1.5px solid #4caf50;
-  background: transparent;
+  border: 1.5px solid;
   flex-shrink: 0;
-
-  &.taken {
-    background: #4caf50;
-  }
 }
 
 .fab-container {
@@ -138,7 +225,7 @@
   margin-bottom: 16px;
 }
 
-// ── Year view ────────────────────────────────────────────────
+// ── Year view ─────────────────────────────────────────────────
 .year-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -214,19 +301,31 @@
   border-radius: 50%;
   margin-top: 1px;
   flex-shrink: 0;
+}
 
-  &.red {
-    background-color: #f44336;
+.mini-dot-missed {
+  background-color: transparent;
+  border: 1.5px solid;
+  width: 4px;
+  height: 4px;
+}
+
+// ── Responsive: hide sidebar on small screens ─────────────────
+@media (max-width: 680px) {
+  .page-layout {
+    flex-direction: column;
   }
 
-  &.green {
-    background-color: #4caf50;
+  .sidebar {
+    width: 100%;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
-  &.missed {
-    background-color: transparent;
-    border: 1.5px solid #4caf50;
-    width: 4px;
-    height: 4px;
+  .sidebar-mini-cal,
+  .sidebar-legend {
+    flex: 1;
+    min-width: 160px;
   }
 }

@@ -1,142 +1,215 @@
-<div class="calendar-wrapper">
-  <mat-card class="calendar-card">
-    <mat-card-content>
+<div class="page-layout">
 
-      <!-- View toggle -->
-      <div class="view-toggle">
-        <mat-button-toggle-group [value]="view" (change)="setView($event.value)">
-          <mat-button-toggle value="month">Month</mat-button-toggle>
-          <mat-button-toggle value="year">Year</mat-button-toggle>
-        </mat-button-toggle-group>
-      </div>
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="sidebar">
 
-      <!-- MONTH VIEW -->
-      @if (view === 'month') {
-
-        <div class="month-nav">
-          <button mat-icon-button (click)="prevMonth()" aria-label="Previous month">
-            <mat-icon>chevron_left</mat-icon>
-          </button>
-          <h2 class="month-label">{{ monthLabel }}</h2>
-          <button mat-icon-button (click)="nextMonth()" aria-label="Next month">
-            <mat-icon>chevron_right</mat-icon>
-          </button>
-        </div>
-
-        <div class="calendar-grid">
-
-          @for (day of weekdays; track day) {
-            <div class="weekday-header">{{ day }}</div>
+    <!-- Mini calendar: always shows today's real month -->
+    @if (sidebarMonthGrid) {
+      <div class="sidebar-mini-cal">
+        <div class="sidebar-mini-header">{{ sidebarMonthLabel }}</div>
+        <div class="mini-cal-grid">
+          @for (h of miniWeekdays; track $index) {
+            <div class="mini-wday">{{ h }}</div>
           }
-
-          @for (week of weeks; track $index) {
-            @for (day of week; track $index) {
-              <div
-                class="day-cell"
-                [class.empty]="!day.date"
-                [class.today]="isToday(day.date)"
-                (click)="openDayDetail(day)"
-              >
-                @if (day.date) {
-                  <span class="day-number">{{ day.date.getDate() }}</span>
-
-                  @for (e of day.visibleEvents; track e.id) {
-                    <div class="event-bar"
-                      [class.seizure]="e.kind === 'seizure'"
-                      [class.trigger]="e.kind === 'trigger'"
-                      [matTooltip]="e.label">
-                      {{ truncate(e.label) }}
-                    </div>
-                  }
-                  @if (day.hiddenCount > 0) {
-                    <div class="event-overflow">+{{ day.hiddenCount }} more</div>
-                  }
-
-                  @if (day.medSlots.length > 0) {
-                    <div class="med-slots">
-                      @for (slot of day.medSlots; track slot.time) {
-                        <div
-                          class="med-dot"
-                          [class.taken]="slot.taken"
-                          [matTooltip]="slot.time + (slot.taken ? ' ✓' : '')"
-                        ></div>
-                      }
-                    </div>
+          @for (cell of sidebarMonthGrid.cells; track $index) {
+            @if (cell) {
+              <div class="mini-day-cell"
+                   [class.today]="cell.isToday"
+                   (click)="openDayDetailFromSidebar(cell)">
+                <span class="mini-day-num">{{ cell.dayNum }}</span>
+                @if (!cell.isFuture && !cell.isToday) {
+                  @if (cell.hasSeizure) {
+                    <span class="mini-dot" [style.background-color]="colors.seizure"></span>
+                  } @else if (cell.hasMeds && cell.allMedsTaken) {
+                    <span class="mini-dot" [style.background-color]="colors.med"></span>
+                  } @else if (cell.hasMeds && !cell.allMedsTaken) {
+                    <span class="mini-dot mini-dot-missed" [style.border-color]="colors.med"></span>
                   }
                 }
               </div>
+            } @else {
+              <div class="mini-day-cell empty"></div>
             }
           }
+        </div>
+      </div>
+    }
 
+    <!-- Legend -->
+    <div class="sidebar-legend">
+      <h4 class="legend-title">Legend</h4>
+
+      <div class="legend-item" (click)="seizureInput.click()">
+        <span class="legend-swatch" [style.background-color]="colors.seizure"></span>
+        <span class="legend-label">Seizure</span>
+      </div>
+      <input #seizureInput type="color" [value]="colors.seizure"
+             (input)="updateColor('seizure', $event)" class="color-input-hidden">
+
+      <div class="legend-item" (click)="triggerInput.click()">
+        <span class="legend-swatch" [style.background-color]="colors.trigger"></span>
+        <span class="legend-label">Trigger</span>
+      </div>
+      <input #triggerInput type="color" [value]="colors.trigger"
+             (input)="updateColor('trigger', $event)" class="color-input-hidden">
+
+      <div class="legend-item" (click)="medInput.click()">
+        <span class="legend-swatch legend-swatch-dot" [style.background-color]="colors.med"></span>
+        <span class="legend-label">Medication taken</span>
+      </div>
+      <input #medInput type="color" [value]="colors.med"
+             (input)="updateColor('med', $event)" class="color-input-hidden">
+
+      <div class="legend-item" (click)="medInput.click()">
+        <span class="legend-swatch legend-swatch-dot legend-swatch-missed"
+              [style.border-color]="colors.med"></span>
+        <span class="legend-label">Medication missed</span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main content ─────────────────────────────────────── -->
+  <div class="main-content">
+    <mat-card class="calendar-card">
+      <mat-card-content>
+
+        <!-- View toggle -->
+        <div class="view-toggle">
+          <mat-button-toggle-group [value]="view" (change)="setView($event.value)">
+            <mat-button-toggle value="month">Month</mat-button-toggle>
+            <mat-button-toggle value="year">Year</mat-button-toggle>
+          </mat-button-toggle-group>
         </div>
 
-      }
+        <!-- MONTH VIEW -->
+        @if (view === 'month') {
 
-      <!-- YEAR VIEW -->
-      @if (view === 'year') {
+          <div class="month-nav">
+            <button mat-icon-button (click)="prevMonth()" aria-label="Previous month">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <h2 class="month-label">{{ monthLabel }}</h2>
+            <button mat-icon-button (click)="nextMonth()" aria-label="Next month">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
 
-        <div class="month-nav">
-          <button mat-icon-button (click)="prevYear()" aria-label="Previous year">
-            <mat-icon>chevron_left</mat-icon>
-          </button>
-          <h2 class="month-label">{{ currentYear }}</h2>
-          <button mat-icon-button (click)="nextYear()" aria-label="Next year">
-            <mat-icon>chevron_right</mat-icon>
-          </button>
-        </div>
+          <div class="calendar-grid">
 
-        <div class="year-grid">
-          @for (m of yearMonths; track m.month) {
-            <div class="mini-month">
-              <div class="mini-month-name">{{ m.monthName }}</div>
-              <div class="mini-cal-grid">
+            @for (day of weekdays; track day) {
+              <div class="weekday-header">{{ day }}</div>
+            }
 
-                @for (h of miniWeekdays; track $index) {
-                  <div class="mini-wday">{{ h }}</div>
-                }
+            @for (week of weeks; track $index) {
+              @for (day of week; track $index) {
+                <div class="day-cell"
+                     [class.empty]="!day.date"
+                     [class.today]="isToday(day.date)"
+                     (click)="openDayDetail(day)">
+                  @if (day.date) {
+                    <span class="day-number">{{ day.date.getDate() }}</span>
 
-                @for (cell of m.cells; track $index) {
-                  @if (cell) {
-                    <div class="mini-day-cell"
-                         [class.today]="cell.isToday"
-                         (click)="openDayDetailFromCell(cell)">
-                      <span class="mini-day-num">{{ cell.dayNum }}</span>
-                      @if (!cell.isFuture && !cell.isToday) {
-                        <span class="mini-dot"
-                          [class.red]="cell.hasSeizure"
-                          [class.green]="!cell.hasSeizure && cell.hasMeds && cell.allMedsTaken"
-                          [class.missed]="!cell.hasSeizure && cell.hasMeds && !cell.allMedsTaken">
-                        </span>
-                      }
-                    </div>
-                  } @else {
-                    <div class="mini-day-cell empty"></div>
+                    @for (e of day.visibleEvents; track e.id) {
+                      <div class="event-bar"
+                           [style.background-color]="e.kind === 'seizure' ? colors.seizure : colors.trigger"
+                           [matTooltip]="e.label">
+                        {{ truncate(e.label) }}
+                      </div>
+                    }
+                    @if (day.hiddenCount > 0) {
+                      <div class="event-overflow">+{{ day.hiddenCount }} more</div>
+                    }
+
+                    @if (day.medSlots.length > 0) {
+                      <div class="med-slots">
+                        @for (slot of day.medSlots; track slot.time) {
+                          <div class="med-dot"
+                               [style.border-color]="colors.med"
+                               [style.background-color]="slot.taken ? colors.med : 'transparent'"
+                               [matTooltip]="slot.time + (slot.taken ? ' ✓' : '')">
+                          </div>
+                        }
+                      </div>
+                    }
                   }
-                }
+                </div>
+              }
+            }
 
+          </div>
+
+        }
+
+        <!-- YEAR VIEW -->
+        @if (view === 'year') {
+
+          <div class="month-nav">
+            <button mat-icon-button (click)="prevYear()" aria-label="Previous year">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <h2 class="month-label">{{ currentYear }}</h2>
+            <button mat-icon-button (click)="nextYear()" aria-label="Next year">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+
+          <div class="year-grid">
+            @for (m of yearMonths; track m.month) {
+              <div class="mini-month">
+                <div class="mini-month-name">{{ m.monthName }}</div>
+                <div class="mini-cal-grid">
+
+                  @for (h of miniWeekdays; track $index) {
+                    <div class="mini-wday">{{ h }}</div>
+                  }
+
+                  @for (cell of m.cells; track $index) {
+                    @if (cell) {
+                      <div class="mini-day-cell"
+                           [class.today]="cell.isToday"
+                           (click)="openDayDetailFromCell(cell)">
+                        <span class="mini-day-num">{{ cell.dayNum }}</span>
+                        @if (!cell.isFuture && !cell.isToday) {
+                          @if (cell.hasSeizure) {
+                            <span class="mini-dot" [style.background-color]="colors.seizure"></span>
+                          } @else if (cell.hasMeds && cell.allMedsTaken) {
+                            <span class="mini-dot" [style.background-color]="colors.med"></span>
+                          } @else if (cell.hasMeds && !cell.allMedsTaken) {
+                            <span class="mini-dot mini-dot-missed" [style.border-color]="colors.med"></span>
+                          }
+                        }
+                      </div>
+                    } @else {
+                      <div class="mini-day-cell empty"></div>
+                    }
+                  }
+
+                </div>
               </div>
-            </div>
-          }
-        </div>
+            }
+          </div>
 
-      }
+        }
 
-    </mat-card-content>
-  </mat-card>
+      </mat-card-content>
+    </mat-card>
 
-  <!-- Action buttons -->
-  <div class="fab-container">
-    <button mat-fab extended color="primary" (click)="openAddDialog()">
-      <mat-icon>add</mat-icon>
-      Add seizures / triggers
-    </button>
-    <button mat-fab extended color="accent" (click)="openAddMedicationDialog()">
-      <mat-icon>add</mat-icon>
-      Add medication
-    </button>
+    <!-- Action buttons -->
+    <div class="fab-container">
+      <button mat-fab extended color="primary" (click)="openAddDialog()">
+        <mat-icon>add</mat-icon>
+        Add seizures / triggers
+      </button>
+      <button mat-fab extended color="accent" (click)="openAddMedicationDialog()">
+        <mat-icon>add</mat-icon>
+        Add medication
+      </button>
+    </div>
+
+    @if (view === 'month') {
+      <app-medication-overview (medicationsTaken)="loadMedData()"></app-medication-overview>
+    }
   </div>
 
-  @if (view === 'month') {
-    <app-medication-overview (medicationsTaken)="loadMedData()"></app-medication-overview>
-  }
 </div>

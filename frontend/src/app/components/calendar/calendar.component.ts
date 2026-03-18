@@ -60,6 +60,8 @@ export interface YearMonthGrid {
   cells: (YearDayCell | null)[];
 }
 
+const COLOR_STORAGE_KEY = 'epiapp_colors';
+
 @Component({
   selector: 'app-calendar',
   standalone: true,
@@ -92,6 +94,11 @@ export class CalendarComponent implements OnInit {
   yearMonths: YearMonthGrid[] = [];
   yearMedLogs: MedicationLog[] = [];
 
+  sidebarMonthGrid: YearMonthGrid | null = null;
+  sidebarMedLogs: MedicationLog[] = [];
+
+  colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50' };
+
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly miniWeekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   readonly monthNames = [
@@ -113,6 +120,18 @@ export class CalendarComponent implements OnInit {
     return t.type === 'OTHER' && t.label ? t.label : this.triggerLabels[t.type];
   }
 
+  updateColor(key: 'seizure' | 'trigger' | 'med', event: Event): void {
+    this.colors[key] = (event.target as HTMLInputElement).value;
+    localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(this.colors));
+  }
+
+  private loadColors(): void {
+    try {
+      const stored = localStorage.getItem(COLOR_STORAGE_KEY);
+      if (stored) this.colors = { ...this.colors, ...JSON.parse(stored) };
+    } catch {}
+  }
+
   constructor(
     private seizureService: SeizureService,
     private triggerService: TriggerService,
@@ -122,7 +141,13 @@ export class CalendarComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.loadColors();
     this.loadEvents();
+  }
+
+  private get todayMonthStr(): string {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
   }
 
   loadEvents(): void {
@@ -131,13 +156,16 @@ export class CalendarComponent implements OnInit {
       triggers: this.triggerService.getAll(),
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
-    }).subscribe(({ seizures, triggers, medications, logs }) => {
+      sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
+    }).subscribe(({ seizures, triggers, medications, logs, sidebarLogs }) => {
       this.seizures = seizures;
       this.triggers = triggers;
       this.medications = medications;
       this.medLogs = logs;
+      this.sidebarMedLogs = sidebarLogs;
       this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
       this.buildCalendar();
+      this.buildSidebarMonth();
     });
   }
 
@@ -145,19 +173,20 @@ export class CalendarComponent implements OnInit {
     forkJoin({
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
-    }).subscribe(({ medications, logs }) => {
+      sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
+    }).subscribe(({ medications, logs, sidebarLogs }) => {
       this.medications = medications;
       this.medLogs = logs;
+      this.sidebarMedLogs = sidebarLogs;
       this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
       this.buildCalendar();
+      this.buildSidebarMonth();
     });
   }
 
   setView(v: 'month' | 'year'): void {
     this.view = v;
-    if (v === 'year') {
-      this.loadYearEvents();
-    }
+    if (v === 'year') this.loadYearEvents();
   }
 
   loadYearEvents(): void {
@@ -171,52 +200,58 @@ export class CalendarComponent implements OnInit {
       });
   }
 
-  buildYearMonths(): void {
+  private buildMonthGrid(year: number, month: number, logs: MedicationLog[]): YearMonthGrid {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = this.localDateString(today);
 
-    this.yearMonths = this.monthNames.map((monthName, month) => {
-      const firstDay = new Date(this.currentYear, month, 1);
-      const lastDay = new Date(this.currentYear, month + 1, 0);
-      const startDow = firstDay.getDay();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDow = firstDay.getDay();
+    const cells: (YearDayCell | null)[] = [];
 
-      const cells: (YearDayCell | null)[] = [];
+    for (let i = 0; i < startDow; i++) cells.push(null);
 
-      for (let i = 0; i < startDow; i++) {
-        cells.push(null);
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(year, month, d);
+      const dateStr = this.localDateString(date);
+      const isToday = dateStr === todayStr;
+      const isFuture = date > today;
+
+      const seizures = this.seizures.filter(s =>
+        this.localDateString(new Date(s.dateTime)) === dateStr
+      );
+      const triggers = this.triggers.filter(t => t.date === dateStr);
+      const hasSeizure = seizures.length > 0;
+      const hasMeds = this.medTimes.length > 0;
+
+      let allMedsTaken = false;
+      if (hasMeds && !isFuture && !isToday) {
+        allMedsTaken = this.medTimes.every(time => {
+          const medsAtTime = this.medications.filter(m => m.times.includes(time));
+          return medsAtTime.length === 0 || medsAtTime.every(m =>
+            logs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr)
+          );
+        });
       }
 
-      for (let d = 1; d <= lastDay.getDate(); d++) {
-        const date = new Date(this.currentYear, month, d);
-        const dateStr = this.localDateString(date);
-        const isToday = dateStr === todayStr;
-        const isFuture = date > today;
+      cells.push({ date, dateStr, dayNum: d, isToday, isFuture, hasSeizure, hasMeds, allMedsTaken, seizures, triggers });
+    }
 
-        const seizures = this.seizures.filter(s =>
-          this.localDateString(new Date(s.dateTime)) === dateStr
-        );
-        const triggers = this.triggers.filter(t => t.date === dateStr);
-        const hasSeizure = seizures.length > 0;
-        const hasMeds = this.medTimes.length > 0;
+    return { month, monthName: this.monthNames[month], cells };
+  }
 
-        let allMedsTaken = false;
-        if (hasMeds && !isFuture && !isToday) {
-          allMedsTaken = this.medTimes.every(time => {
-            const medsAtTime = this.medications.filter(m => m.times.includes(time));
-            return medsAtTime.length === 0 || medsAtTime.every(m =>
-              this.yearMedLogs.some(l =>
-                l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr
-              )
-            );
-          });
-        }
+  buildYearMonths(): void {
+    this.yearMonths = this.monthNames.map((_, month) =>
+      this.buildMonthGrid(this.currentYear, month, this.yearMedLogs)
+    );
+  }
 
-        cells.push({ date, dateStr, dayNum: d, isToday, isFuture, hasSeizure, hasMeds, allMedsTaken, seizures, triggers });
-      }
-
-      return { month, monthName, cells };
-    });
+  buildSidebarMonth(): void {
+    const today = new Date();
+    this.sidebarMonthGrid = this.buildMonthGrid(
+      today.getFullYear(), today.getMonth(), this.sidebarMedLogs
+    );
   }
 
   buildCalendar(): void {
@@ -230,9 +265,7 @@ export class CalendarComponent implements OnInit {
     const emptyDay = (): CalendarDay =>
       ({ date: null, seizures: [], triggers: [], medSlots: [], visibleEvents: [], hiddenCount: 0 });
 
-    for (let i = 0; i < startDow; i++) {
-      week.push(emptyDay());
-    }
+    for (let i = 0; i < startDow; i++) week.push(emptyDay());
 
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const date = new Date(this.currentYear, this.currentMonth, d);
@@ -255,21 +288,18 @@ export class CalendarComponent implements OnInit {
         ...daySeizures.map(s => ({ kind: 'seizure' as const, id: s.id!, label: this.seizureLabel(s) })),
         ...dayTriggers.map(t => ({ kind: 'trigger' as const, id: t.id!, label: this.triggerLabels[t.type] })),
       ];
-      const visibleEvents = allEvents.slice(0, 5);
-      const hiddenCount = Math.max(0, allEvents.length - 5);
 
-      week.push({ date, seizures: daySeizures, triggers: dayTriggers, medSlots, visibleEvents, hiddenCount });
+      week.push({
+        date, seizures: daySeizures, triggers: dayTriggers, medSlots,
+        visibleEvents: allEvents.slice(0, 5),
+        hiddenCount: Math.max(0, allEvents.length - 5),
+      });
 
-      if (week.length === 7) {
-        weeks.push(week);
-        week = [];
-      }
+      if (week.length === 7) { weeks.push(week); week = []; }
     }
 
     if (week.length > 0) {
-      while (week.length < 7) {
-        week.push(emptyDay());
-      }
+      while (week.length < 7) week.push(emptyDay());
       weeks.push(week);
     }
 
@@ -287,39 +317,29 @@ export class CalendarComponent implements OnInit {
     return `${this.monthNames[this.currentMonth]} ${this.currentYear}`;
   }
 
+  get sidebarMonthLabel(): string {
+    const t = new Date();
+    return `${this.monthNames[t.getMonth()]} ${t.getFullYear()}`;
+  }
+
   private yearMonthStr(): string {
     return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
   }
 
   prevMonth(): void {
-    if (this.currentMonth === 0) {
-      this.currentMonth = 11;
-      this.currentYear--;
-    } else {
-      this.currentMonth--;
-    }
+    if (this.currentMonth === 0) { this.currentMonth = 11; this.currentYear--; }
+    else this.currentMonth--;
     this.loadMedData();
   }
 
   nextMonth(): void {
-    if (this.currentMonth === 11) {
-      this.currentMonth = 0;
-      this.currentYear++;
-    } else {
-      this.currentMonth++;
-    }
+    if (this.currentMonth === 11) { this.currentMonth = 0; this.currentYear++; }
+    else this.currentMonth++;
     this.loadMedData();
   }
 
-  prevYear(): void {
-    this.currentYear--;
-    this.loadYearEvents();
-  }
-
-  nextYear(): void {
-    this.currentYear++;
-    this.loadYearEvents();
-  }
+  prevYear(): void { this.currentYear--; this.loadYearEvents(); }
+  nextYear(): void { this.currentYear++; this.loadYearEvents(); }
 
   openAddDialog(): void {
     const addRef = this.dialog.open(AddEventDialogComponent, { width: '320px' });
@@ -337,10 +357,7 @@ export class CalendarComponent implements OnInit {
   openAddMedicationDialog(): void {
     this.dialog.open(AddMedicationDialogComponent, { width: '420px' })
       .afterClosed().subscribe(saved => {
-        if (saved) {
-          this.medicationOverview.loadData();
-          this.loadMedData();
-        }
+        if (saved) { this.medicationOverview.loadData(); this.loadMedData(); }
       });
   }
 
@@ -359,9 +376,15 @@ export class CalendarComponent implements OnInit {
     }).afterClosed().subscribe(changed => { if (changed) this.loadYearEvents(); });
   }
 
+  openDayDetailFromSidebar(cell: YearDayCell): void {
+    this.dialog.open(DayDetailDialogComponent, {
+      width: '420px',
+      data: { date: cell.date, seizures: cell.seizures, triggers: cell.triggers }
+    }).afterClosed().subscribe(changed => { if (changed) this.loadEvents(); });
+  }
+
   isToday(date: Date | null): boolean {
     if (!date) return false;
-    const today = new Date();
-    return this.localDateString(date) === this.localDateString(today);
+    return this.localDateString(date) === this.localDateString(new Date());
   }
 }
