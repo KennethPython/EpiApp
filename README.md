@@ -128,7 +128,12 @@ All endpoints are under `/api`.
 
 **Response:**
 ```json
-{ "userId": 1, "username": "Kenneth123@" }
+{ "token": "<jwt>", "username": "Kenneth123@" }
+```
+
+The returned `token` must be sent as a `Bearer` token on all subsequent requests:
+```
+Authorization: Bearer <token>
 ```
 
 Password rules (enforced on the frontend): min 8 characters, at least 1 number, at least 1 special character. Usernames must be unique (409 Conflict if taken).
@@ -270,6 +275,12 @@ Medication FAB
 
 ---
 
-## Auth Readiness
+## Authentication
 
-A `User` entity and login/register endpoints are implemented. All other entities include a `userId` field ready for per-user data filtering once session or token-based auth is added to the API layer.
+All API endpoints except `/api/auth/register` and `/api/auth/login` require a valid JWT in the `Authorization: Bearer` header. The frontend attaches the token automatically via an HTTP interceptor. Each user's data (seizures, triggers, medications, logs, custom trigger options) is isolated — only the authenticated user's own records are accessible.
+
+Railway environment variable required for production:
+
+| Variable | Description |
+|---|---|
+| `JWT_SECRET` | HS256 signing secret (min 32 characters) |
