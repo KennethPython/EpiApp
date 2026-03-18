@@ -125,8 +125,9 @@
 
 .fab-container {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   margin-top: 24px;
   margin-bottom: 24px;
 }

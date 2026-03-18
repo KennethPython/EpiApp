@@ -67,11 +67,13 @@
 
   <!-- Action buttons -->
   <div class="fab-container">
-    <button mat-fab color="primary" (click)="openAddDialog()" aria-label="Add seizure or trigger">
+    <button mat-fab extended color="primary" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
+      Add seizures / triggers
     </button>
-    <button mat-fab color="accent" (click)="openAddMedicationDialog()" aria-label="Add medication">
-      <mat-icon>medication</mat-icon>
+    <button mat-fab extended color="accent" (click)="openAddMedicationDialog()">
+      <mat-icon>add</mat-icon>
+      Add medication
     </button>
   </div>
 
