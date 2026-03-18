@@ -31,6 +31,5 @@ public class MedicationLog {
 
     private LocalDateTime takenAt; // set server-side when taken
 
-    // Reserved for future user authentication
-    private String userId;
+    private Long userId;
 }

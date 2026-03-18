@@ -26,6 +26,5 @@ public class Seizure {
     @Column(length = 1000)
     private String notes;
 
-    // Reserved for future user authentication
-    private String userId;
+    private Long userId;
 }

@@ -1,56 +1,52 @@
 package com.epiapp.controller;
 
+import com.epiapp.config.JwtUtil;
 import com.epiapp.model.User;
 import com.epiapp.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    public AuthController(UserRepository userRepository, JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
         String username = body.get("username");
         String password = body.get("password");
-
-        if (username == null || username.isBlank() || password == null || password.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Username and password are required."));
+        if (userRepository.findByUsername(username).isPresent()) {
+            return ResponseEntity.status(409).body(Map.of("error", "Username already taken"));
         }
-
-        if (userRepository.existsByUsername(username)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Username already exists."));
-        }
-
         User user = new User();
         user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(password));
-        User saved = userRepository.save(user);
-
-        return ResponseEntity.ok(Map.of("userId", saved.getId(), "username", saved.getUsername()));
+        userRepository.save(user);
+        String token = jwtUtil.generate(username);
+        return ResponseEntity.ok(Map.of("token", token, "username", username));
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         String username = body.get("username");
         String password = body.get("password");
-
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isEmpty() || !passwordEncoder.matches(password, userOpt.get().getPasswordHash())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid username or password."));
-        }
-
-        User user = userOpt.get();
-        return ResponseEntity.ok(Map.of("userId", user.getId(), "username", user.getUsername()));
+        return userRepository.findByUsername(username)
+                .filter(u -> passwordEncoder.matches(password, u.getPasswordHash()))
+                .map(u -> {
+                    String token = jwtUtil.generate(username);
+                    return ResponseEntity.ok(Map.of("token", token, "username", username));
+                })
+                .orElse(ResponseEntity.status(401).body(Map.of("error", "Invalid credentials")));
     }
 }

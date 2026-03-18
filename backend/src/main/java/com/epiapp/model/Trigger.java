@@ -28,6 +28,5 @@ public class Trigger {
     // Optional link to the seizure this trigger is associated with
     private Long seizureId;
 
-    // Reserved for future user authentication
-    private String userId;
+    private Long userId;
 }

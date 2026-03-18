@@ -1,52 +1,62 @@
 package com.epiapp.controller;
 
 import com.epiapp.model.Medication;
+import com.epiapp.model.User;
 import com.epiapp.repository.MedicationLogRepository;
 import com.epiapp.repository.MedicationRepository;
-import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/medications")
-@RequiredArgsConstructor
 public class MedicationController {
 
     private final MedicationRepository medicationRepository;
     private final MedicationLogRepository medicationLogRepository;
 
+    public MedicationController(MedicationRepository medicationRepository,
+                                MedicationLogRepository medicationLogRepository) {
+        this.medicationRepository = medicationRepository;
+        this.medicationLogRepository = medicationLogRepository;
+    }
+
     @GetMapping
-    public List<Medication> getAll() {
-        return medicationRepository.findAll();
+    public List<Medication> getAll(@AuthenticationPrincipal User currentUser) {
+        return medicationRepository.findByUserId(currentUser.getId());
     }
 
     @PostMapping
-    public Medication create(@Valid @RequestBody Medication medication) {
+    public Medication create(@RequestBody Medication medication, @AuthenticationPrincipal User currentUser) {
+        medication.setUserId(currentUser.getId());
         return medicationRepository.save(medication);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Medication> update(@PathVariable Long id, @Valid @RequestBody Medication updated) {
-        return medicationRepository.findById(id).map(existing -> {
-            existing.setName(updated.getName());
-            existing.setDosage(updated.getDosage());
-            existing.setTimes(updated.getTimes());
-            return ResponseEntity.ok(medicationRepository.save(existing));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Medication> update(@PathVariable Long id,
+                                             @RequestBody Medication updated,
+                                             @AuthenticationPrincipal User currentUser) {
+        return medicationRepository.findById(id)
+                .filter(m -> m.getUserId().equals(currentUser.getId()))
+                .map(m -> {
+                    m.setName(updated.getName());
+                    m.setDosage(updated.getDosage());
+                    m.setTimes(updated.getTimes());
+                    return ResponseEntity.ok(medicationRepository.save(m));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @Transactional
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!medicationRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        medicationLogRepository.deleteByMedicationId(id);
-        medicationRepository.deleteById(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
+        medicationRepository.findById(id).ifPresent(m -> {
+            if (m.getUserId().equals(currentUser.getId())) {
+                medicationLogRepository.deleteByMedicationId(id);
+                medicationRepository.deleteById(id);
+            }
+        });
         return ResponseEntity.noContent().build();
     }
 }

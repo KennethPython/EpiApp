@@ -1,43 +1,51 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
-export interface AuthResponse {
-  userId: number;
+interface AuthResponse {
+  token: string;
   username: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly STORAGE_KEY = 'epiapp_user';
+  private readonly tokenKey = 'epiapp_token';
+  private readonly usernameKey = 'epiapp_username';
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient) {}
 
   login(username: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/auth/login', { username, password }).pipe(
-      tap(user => localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user)))
+      tap(res => {
+        localStorage.setItem(this.tokenKey, res.token);
+        localStorage.setItem(this.usernameKey, res.username);
+      })
     );
   }
 
   register(username: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/auth/register', { username, password }).pipe(
-      tap(user => localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user)))
+      tap(res => {
+        localStorage.setItem(this.tokenKey, res.token);
+        localStorage.setItem(this.usernameKey, res.username);
+      })
     );
   }
 
-  logout(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
-    this.router.navigate(['/login']);
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  getUsername(): string | null {
+    return localStorage.getItem(this.usernameKey);
   }
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem(this.STORAGE_KEY);
+    return !!this.getToken();
   }
 
-  getCurrentUser(): AuthResponse | null {
-    const raw = localStorage.getItem(this.STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+  logout(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.usernameKey);
   }
 }

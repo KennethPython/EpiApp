@@ -26,6 +26,5 @@ public class Medication {
     @Column(name = "scheduled_time")
     private List<String> times = new ArrayList<>();
 
-    // Reserved for future user authentication
-    private String userId;
+    private Long userId;
 }

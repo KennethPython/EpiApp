@@ -1,45 +1,44 @@
 package com.epiapp.controller;
 
 import com.epiapp.model.MedicationLog;
+import com.epiapp.model.User;
 import com.epiapp.repository.MedicationLogRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/medication-logs")
-@RequiredArgsConstructor
 public class MedicationLogController {
 
     private final MedicationLogRepository medicationLogRepository;
 
+    public MedicationLogController(MedicationLogRepository medicationLogRepository) {
+        this.medicationLogRepository = medicationLogRepository;
+    }
+
     @GetMapping
-    public List<MedicationLog> getLogs(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) String yearMonth) {
+    public List<MedicationLog> getLogs(@RequestParam(required = false) String date,
+                                       @RequestParam(required = false) String yearMonth,
+                                       @AuthenticationPrincipal User currentUser) {
+        Long userId = currentUser.getId();
         if (date != null) {
-            return medicationLogRepository.findByDate(date);
+            LocalDate d = LocalDate.parse(date);
+            return medicationLogRepository.findByUserIdAndDate(userId, d);
         } else if (yearMonth != null) {
-            String[] parts = yearMonth.split("-");
-            LocalDate start = LocalDate.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), 1);
-            LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-            return medicationLogRepository.findByDateBetween(start, end);
+            YearMonth ym = YearMonth.parse(yearMonth, DateTimeFormatter.ofPattern("yyyy-MM"));
+            return medicationLogRepository.findByUserIdAndDateBetween(userId, ym.atDay(1), ym.atEndOfMonth());
         }
-        return medicationLogRepository.findAll();
+        return medicationLogRepository.findByUserId(userId);
     }
 
     @PostMapping
-    public MedicationLog markTaken(@RequestBody Map<String, String> body) {
-        MedicationLog log = new MedicationLog();
-        log.setMedicationId(Long.parseLong(body.get("medicationId")));
-        log.setScheduledTime(body.get("scheduledTime"));
-        log.setDate(LocalDate.parse(body.get("date")));
-        log.setTakenAt(LocalDateTime.now());
+    public MedicationLog markTaken(@RequestBody MedicationLog log, @AuthenticationPrincipal User currentUser) {
+        log.setUserId(currentUser.getId());
         return medicationLogRepository.save(log);
     }
 }

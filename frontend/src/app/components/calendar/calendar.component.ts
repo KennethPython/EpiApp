@@ -21,6 +21,7 @@ import { TriggerFormDialogComponent } from '../trigger-form-dialog/trigger-form-
 import { DayDetailDialogComponent } from '../day-detail-dialog/day-detail-dialog.component';
 import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medication-dialog.component';
 import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
+import { AuthService } from '../../services/auth.service';
 
 export interface MedSlot {
   time: string;
@@ -60,8 +61,6 @@ export interface YearMonthGrid {
   monthName: string;
   cells: (YearDayCell | null)[];
 }
-
-const COLOR_STORAGE_KEY = 'epiapp_colors';
 
 @Component({
   selector: 'app-calendar',
@@ -126,9 +125,13 @@ export class CalendarComponent implements OnInit {
     return t.type === 'OTHER' && t.label ? t.label : this.triggerLabels[t.type];
   }
 
+  private get colorStorageKey(): string {
+    return `epiapp_colors_${this.authService.getUsername() ?? 'default'}`;
+  }
+
   updateColor(key: 'seizure' | 'trigger' | 'med', event: Event): void {
     this.colors[key] = (event.target as HTMLInputElement).value;
-    localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(this.colors));
+    localStorage.setItem(this.colorStorageKey, JSON.stringify(this.colors));
   }
 
   @HostListener('window:resize')
@@ -143,7 +146,7 @@ export class CalendarComponent implements OnInit {
 
   private loadColors(): void {
     try {
-      const stored = localStorage.getItem(COLOR_STORAGE_KEY);
+      const stored = localStorage.getItem(this.colorStorageKey);
       if (stored) this.colors = { ...this.colors, ...JSON.parse(stored) };
     } catch {}
   }
@@ -153,7 +156,8 @@ export class CalendarComponent implements OnInit {
     private triggerService: TriggerService,
     private medicationService: MedicationService,
     private medicationLogService: MedicationLogService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {

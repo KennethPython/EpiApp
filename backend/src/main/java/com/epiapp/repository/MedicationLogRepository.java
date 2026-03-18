@@ -10,4 +10,7 @@ public interface MedicationLogRepository extends JpaRepository<MedicationLog, Lo
     List<MedicationLog> findByDate(LocalDate date);
     List<MedicationLog> findByDateBetween(LocalDate start, LocalDate end);
     void deleteByMedicationId(Long medicationId);
+    List<MedicationLog> findByUserId(Long userId);
+    List<MedicationLog> findByUserIdAndDate(Long userId, LocalDate date);
+    List<MedicationLog> findByUserIdAndDateBetween(Long userId, LocalDate start, LocalDate end);
 }
