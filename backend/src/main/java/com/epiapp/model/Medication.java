@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,4 +28,6 @@ public class Medication {
     private List<String> times = new ArrayList<>();
 
     private Long userId;
+
+    private LocalDate startDate;
 }

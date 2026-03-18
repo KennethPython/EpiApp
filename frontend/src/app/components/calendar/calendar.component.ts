@@ -243,12 +243,14 @@ export class CalendarComponent implements OnInit {
       );
       const triggers = this.triggers.filter(t => t.date === dateStr);
       const hasSeizure = seizures.length > 0;
-      const hasMeds = this.medTimes.length > 0;
+      const activeMeds = this.medications.filter(m => !m.startDate || m.startDate <= dateStr);
+      const activeTimes = [...new Set(activeMeds.flatMap(m => m.times))].sort();
+      const hasMeds = activeTimes.length > 0;
 
       let allMedsTaken = false;
       if (hasMeds && !isFuture && !isToday) {
-        allMedsTaken = this.medTimes.every(time => {
-          const medsAtTime = this.medications.filter(m => m.times.includes(time));
+        allMedsTaken = activeTimes.every(time => {
+          const medsAtTime = activeMeds.filter(m => m.times.includes(time));
           return medsAtTime.length === 0 || medsAtTime.every(m =>
             logs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr)
           );
@@ -296,8 +298,10 @@ export class CalendarComponent implements OnInit {
       );
       const dayTriggers = this.triggers.filter(t => t.date === dateStr);
 
-      const medSlots: MedSlot[] = this.medTimes.map(time => {
-        const medsAtTime = this.medications.filter(m => m.times.includes(time));
+      const activeMedsForDay = this.medications.filter(m => !m.startDate || m.startDate <= dateStr);
+      const activeTimesForDay = [...new Set(activeMedsForDay.flatMap(m => m.times))].sort();
+      const medSlots: MedSlot[] = activeTimesForDay.map(time => {
+        const medsAtTime = activeMedsForDay.filter(m => m.times.includes(time));
         const taken = medsAtTime.length > 0 && medsAtTime.every(m =>
           this.medLogs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr)
         );

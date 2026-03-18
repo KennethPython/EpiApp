@@ -4,6 +4,7 @@ export interface Medication {
   dosage: string;
   times: string[]; // ["09:00", "21:00"]
   userId?: string;
+  startDate?: string; // "2024-01-15" — date the medication was added
 }
 
 export interface MedicationLog {

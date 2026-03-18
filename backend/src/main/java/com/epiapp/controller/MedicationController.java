@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -31,6 +32,9 @@ public class MedicationController {
     @PostMapping
     public Medication create(@RequestBody Medication medication, @AuthenticationPrincipal User currentUser) {
         medication.setUserId(currentUser.getId());
+        if (medication.getStartDate() == null) {
+            medication.setStartDate(LocalDate.now());
+        }
         return medicationRepository.save(medication);
     }
 
