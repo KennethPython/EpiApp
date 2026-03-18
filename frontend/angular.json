@@ -25,6 +25,7 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
+              "src/epidiary-favicon.svg",
               { "glob": "_redirects", "input": "src", "output": "/" }
             ],
             "styles": [
