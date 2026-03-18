@@ -3,6 +3,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { forkJoin } from 'rxjs';
 
@@ -40,6 +41,20 @@ export interface CalendarDay {
   hiddenCount: number;
 }
 
+export interface YearActivityDay {
+  date: Date;
+  dateStr: string;
+  seizures: Seizure[];
+  triggers: Trigger[];
+  hasMissedMed: boolean;
+}
+
+export interface YearActivity {
+  month: number;
+  monthName: string;
+  days: YearActivityDay[];
+}
+
 @Component({
   selector: 'app-calendar',
   standalone: true,
@@ -48,6 +63,7 @@ export interface CalendarDay {
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatButtonToggleModule,
     MedicationOverviewComponent,
   ],
   templateUrl: './calendar.component.html',
@@ -55,6 +71,8 @@ export interface CalendarDay {
 })
 export class CalendarComponent implements OnInit {
   @ViewChild(MedicationOverviewComponent) medicationOverview!: MedicationOverviewComponent;
+
+  view: 'month' | 'year' = 'month';
 
   currentYear = new Date().getFullYear();
   currentMonth = new Date().getMonth();
@@ -65,6 +83,9 @@ export class CalendarComponent implements OnInit {
   medLogs: MedicationLog[] = [];
   medTimes: string[] = [];
   weeks: CalendarDay[][] = [];
+
+  yearActivities: YearActivity[] = [];
+  yearMedLogs: MedicationLog[] = [];
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly monthNames = [
@@ -80,6 +101,14 @@ export class CalendarComponent implements OnInit {
 
   seizureLabel(s: Seizure): string {
     return s.type ? this.seizureLabels[s.type] : 'Seizure';
+  }
+
+  triggerLabel(t: Trigger): string {
+    return t.type === 'OTHER' && t.label ? t.label : this.triggerLabels[t.type];
+  }
+
+  formatYearDay(date: Date): string {
+    return `${date.getDate()} ${this.monthNames[date.getMonth()].slice(0, 3)}`;
   }
 
   constructor(
@@ -120,6 +149,65 @@ export class CalendarComponent implements OnInit {
       this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
       this.buildCalendar();
     });
+  }
+
+  setView(v: 'month' | 'year'): void {
+    this.view = v;
+    if (v === 'year') {
+      this.loadYearEvents();
+    }
+  }
+
+  loadYearEvents(): void {
+    const months = Array.from({ length: 12 }, (_, i) =>
+      `${this.currentYear}-${String(i + 1).padStart(2, '0')}`
+    );
+    forkJoin(months.map(m => this.medicationLogService.getByMonth(m)))
+      .subscribe(logsPerMonth => {
+        this.yearMedLogs = logsPerMonth.flat();
+        this.buildYearActivities();
+      });
+  }
+
+  buildYearActivities(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const result: YearActivity[] = [];
+
+    for (let month = 0; month < 12; month++) {
+      const lastDay = new Date(this.currentYear, month + 1, 0).getDate();
+      const days: YearActivityDay[] = [];
+
+      for (let d = 1; d <= lastDay; d++) {
+        const date = new Date(this.currentYear, month, d);
+        const dateStr = this.localDateString(date);
+
+        const seizures = this.seizures.filter(s =>
+          this.localDateString(new Date(s.dateTime)) === dateStr
+        );
+        const triggers = this.triggers.filter(t => t.date === dateStr);
+
+        const hasMissedMed = date < today && this.medTimes.length > 0 &&
+          this.medTimes.some(time => {
+            const medsAtTime = this.medications.filter(m => m.times.includes(time));
+            return medsAtTime.length > 0 && !medsAtTime.every(m =>
+              this.yearMedLogs.some(l =>
+                l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr
+              )
+            );
+          });
+
+        if (seizures.length > 0 || triggers.length > 0 || hasMissedMed) {
+          days.push({ date, dateStr, seizures, triggers, hasMissedMed });
+        }
+      }
+
+      if (days.length > 0) {
+        result.push({ month, monthName: this.monthNames[month], days });
+      }
+    }
+
+    this.yearActivities = result;
   }
 
   buildCalendar(): void {
@@ -214,6 +302,16 @@ export class CalendarComponent implements OnInit {
     this.loadMedData();
   }
 
+  prevYear(): void {
+    this.currentYear--;
+    this.loadYearEvents();
+  }
+
+  nextYear(): void {
+    this.currentYear++;
+    this.loadYearEvents();
+  }
+
   openAddDialog(): void {
     const addRef = this.dialog.open(AddEventDialogComponent, { width: '320px' });
     addRef.afterClosed().subscribe((choice: 'SEIZURE' | 'TRIGGER' | undefined) => {
@@ -243,6 +341,13 @@ export class CalendarComponent implements OnInit {
       width: '420px',
       data: { date: day.date, seizures: day.seizures, triggers: day.triggers }
     }).afterClosed().subscribe(changed => { if (changed) this.loadEvents(); });
+  }
+
+  openDayDetailFromYear(day: YearActivityDay): void {
+    this.dialog.open(DayDetailDialogComponent, {
+      width: '420px',
+      data: { date: day.date, seizures: day.seizures, triggers: day.triggers }
+    }).afterClosed().subscribe(changed => { if (changed) this.loadYearEvents(); });
   }
 
   isToday(date: Date | null): boolean {
