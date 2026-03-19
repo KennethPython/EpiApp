@@ -1,8 +1,8 @@
-# EpiApp — Epilepsy Tracker
+# EpilAppsy — Epilepsy Tracker
 
 A calendar-based app for logging seizures, triggers, and medications. Built with **Angular 17 + Angular Material** (frontend) and **Spring Boot 3** (backend).
 
-**Live frontend:** https://singular-rolypoly-d1c461.netlify.app/
+**Live frontend:** https://epilappsy.netlify.app/
 **Live backend:** https://epiapp-production.up.railway.app
 
 ---
@@ -106,7 +106,7 @@ In production, all `/api/*` requests from the Netlify frontend are routed to the
 | Development | *(empty — proxied via `proxy.conf.json`)* |
 | Production | `https://epiapp-production.up.railway.app` |
 
-> **Note:** The Railway backend must have CORS configured to allow requests from `https://singular-rolypoly-d1c461.netlify.app`.
+> **Note:** The Railway backend must have CORS configured to allow requests from `https://epilappsy.netlify.app`.
 
 ---
 
