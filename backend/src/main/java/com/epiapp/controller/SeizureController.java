@@ -30,6 +30,22 @@ public class SeizureController {
         return seizureRepository.save(seizure);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Seizure> update(@PathVariable Long id,
+                                          @RequestBody Seizure updated,
+                                          @AuthenticationPrincipal User currentUser) {
+        return seizureRepository.findById(id)
+                .filter(s -> s.getUserId().equals(currentUser.getId()))
+                .map(s -> {
+                    s.setDateTime(updated.getDateTime());
+                    s.setDurationMinutes(updated.getDurationMinutes());
+                    s.setType(updated.getType());
+                    s.setNotes(updated.getNotes());
+                    return ResponseEntity.ok(seizureRepository.save(s));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
         seizureRepository.findById(id).ifPresent(s -> {

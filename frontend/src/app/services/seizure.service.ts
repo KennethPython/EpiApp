@@ -17,6 +17,10 @@ export class SeizureService {
     return this.http.post<Seizure>(this.apiUrl, seizure);
   }
 
+  update(id: number, seizure: Seizure): Observable<Seizure> {
+    return this.http.put<Seizure>(`${this.apiUrl}/${id}`, seizure);
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }

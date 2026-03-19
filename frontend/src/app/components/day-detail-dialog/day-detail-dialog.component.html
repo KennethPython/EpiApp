@@ -13,7 +13,7 @@
         <mat-list-item class="seizure-row" (click)="openSeizure(seizure)">
           <mat-icon matListItemIcon class="seizure-color">bolt</mat-icon>
           <span matListItemTitle>{{ seizureTypeLabel(seizure) }}</span>
-          <span matListItemLine>{{ formatTime(seizure.dateTime) }} · <span class="more-info">More info</span></span>
+          <span matListItemLine>{{ formatTime(seizure.dateTime) }} · <span class="edit-hint">Edit</span></span>
           <button matListItemMeta mat-icon-button (click)="$event.stopPropagation(); deleteSeizure(seizure)" aria-label="Delete seizure">
             <mat-icon>delete_outline</mat-icon>
           </button>
@@ -30,6 +30,9 @@
         <mat-list-item>
           <mat-icon matListItemIcon class="trigger-color">warning_amber</mat-icon>
           <span matListItemTitle>{{ getTriggerLabel(trigger) }}</span>
+          <button matListItemMeta mat-icon-button (click)="openEditTrigger(trigger)" aria-label="Edit trigger">
+            <mat-icon>edit</mat-icon>
+          </button>
           <button matListItemMeta mat-icon-button (click)="deleteTrigger(trigger)" aria-label="Delete trigger">
             <mat-icon>delete_outline</mat-icon>
           </button>
@@ -41,7 +44,14 @@
 
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
+<mat-dialog-actions>
+  <button mat-button (click)="openAddSeizure()">
+    <mat-icon>bolt</mat-icon> Add Seizure
+  </button>
+  <button mat-button (click)="openAddTrigger()">
+    <mat-icon>warning_amber</mat-icon> Add Trigger
+  </button>
+  <span class="spacer"></span>
   <button mat-button (click)="close()">Close</button>
 </mat-dialog-actions>
 
@@ -52,5 +62,6 @@
   .trigger-color { color: #ff9800; }
   .seizure-row { cursor: pointer; }
   .seizure-row:hover { background-color: rgba(244, 67, 54, 0.05); }
-  .more-info { color: #3f51b5; font-size: 0.8rem; }
+  .edit-hint { color: #3f51b5; font-size: 0.8rem; }
+  .spacer { flex: 1; }
 </style>

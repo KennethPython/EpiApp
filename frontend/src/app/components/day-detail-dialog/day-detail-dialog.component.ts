@@ -10,6 +10,7 @@ import { TriggerService } from '../../services/trigger.service';
 import { Seizure, SEIZURE_TYPE_LABELS } from '../../models/seizure.model';
 import { Trigger, TRIGGER_LABELS } from '../../models/trigger.model';
 import { SeizureFormDialogComponent, SeizureDialogData } from '../seizure-form-dialog/seizure-form-dialog.component';
+import { TriggerFormDialogComponent, TriggerDialogData } from '../trigger-form-dialog/trigger-form-dialog.component';
 
 export interface DayDetailData {
   date: Date;
@@ -79,8 +80,27 @@ export class DayDetailDialogComponent {
   openSeizure(seizure: Seizure): void {
     this.triggerService.getBySeizure(seizure.id!).subscribe(triggers => {
       const data: SeizureDialogData = { seizure, triggers };
-      this.dialog.open(SeizureFormDialogComponent, { width: '440px', data });
+      this.dialog.open(SeizureFormDialogComponent, { width: '440px', data })
+        .afterClosed().subscribe(saved => { if (saved) { this.changed = true; this.close(); } });
     });
+  }
+
+  openAddSeizure(): void {
+    const data: SeizureDialogData = { initialDate: this.data.date };
+    this.dialog.open(SeizureFormDialogComponent, { width: '440px', data })
+      .afterClosed().subscribe(saved => { if (saved) { this.changed = true; this.close(); } });
+  }
+
+  openAddTrigger(): void {
+    const data: TriggerDialogData = { initialDate: this.data.date };
+    this.dialog.open(TriggerFormDialogComponent, { width: '400px', data })
+      .afterClosed().subscribe(saved => { if (saved) { this.changed = true; this.close(); } });
+  }
+
+  openEditTrigger(trigger: Trigger): void {
+    const data: TriggerDialogData = { editTrigger: trigger };
+    this.dialog.open(TriggerFormDialogComponent, { width: '400px', data })
+      .afterClosed().subscribe(saved => { if (saved) { this.changed = true; this.close(); } });
   }
 
   getTriggerLabel(trigger: Trigger): string {

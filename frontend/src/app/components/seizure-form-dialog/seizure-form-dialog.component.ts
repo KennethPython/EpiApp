@@ -20,8 +20,9 @@ import { Seizure, SeizureType, SEIZURE_TYPE_LABELS } from '../../models/seizure.
 import { Trigger, TRIGGER_LABELS } from '../../models/trigger.model';
 
 export interface SeizureDialogData {
-  seizure: Seizure;
+  seizure?: Seizure;
   triggers?: Trigger[];
+  initialDate?: Date;
 }
 
 interface TriggerOption {
@@ -54,7 +55,7 @@ interface TriggerOption {
 export class SeizureFormDialogComponent implements OnInit {
   form: FormGroup;
   newCustomLabel = '';
-  viewMode = false;
+  editMode = false;
 
   readonly seizureTypes: { value: SeizureType; label: string }[] = (
     Object.entries(SEIZURE_TYPE_LABELS) as [SeizureType, string][]
@@ -66,7 +67,7 @@ export class SeizureFormDialogComponent implements OnInit {
     { key: 'MEDICATION', label: TRIGGER_LABELS['MEDICATION'], isCustom: false, checked: false },
   ];
 
-  viewTriggers: Trigger[] = [];
+  editTriggers: Trigger[] = [];
 
   constructor(
     private dialogRef: MatDialogRef<SeizureFormDialogComponent>,
@@ -78,20 +79,21 @@ export class SeizureFormDialogComponent implements OnInit {
   ) {
     const existingSeizure = dialogData?.seizure ?? null;
     if (existingSeizure?.id) {
-      this.viewMode = true;
-      this.viewTriggers = dialogData?.triggers ?? [];
+      this.editMode = true;
+      this.editTriggers = dialogData?.triggers ?? [];
       const dt = new Date(existingSeizure.dateTime);
       const pad = (n: number) => String(n).padStart(2, '0');
       this.form = this.fb.group({
-        date: [{ value: dt, disabled: true }, Validators.required],
-        time: [{ value: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`, disabled: true }, Validators.required],
-        durationMinutes: [{ value: existingSeizure.durationMinutes ?? null, disabled: true }],
-        type: [{ value: existingSeizure.type ?? null, disabled: true }],
-        notes: [{ value: existingSeizure.notes ?? '', disabled: true }],
+        date: [dt, Validators.required],
+        time: [`${pad(dt.getHours())}:${pad(dt.getMinutes())}`, Validators.required],
+        durationMinutes: [existingSeizure.durationMinutes ?? null, [Validators.min(1)]],
+        type: [existingSeizure.type ?? null],
+        notes: [existingSeizure.notes ?? ''],
       });
     } else {
+      const initialDate = dialogData?.initialDate ?? new Date();
       this.form = this.fb.group({
-        date: [new Date(), Validators.required],
+        date: [initialDate, Validators.required],
         time: [this.nowTimeString(), Validators.required],
         durationMinutes: [null, [Validators.min(1)]],
         type: [null],
@@ -101,7 +103,7 @@ export class SeizureFormDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.viewMode) return;
+    if (this.editMode) return;
     this.customOptionService.getAll().subscribe(customs => {
       customs.forEach(c => this.triggerOptions.push({
         id: c.id,
@@ -138,6 +140,22 @@ export class SeizureFormDialogComponent implements OnInit {
   private nowTimeString(): string {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  }
+
+  save(): void {
+    if (this.form.invalid) return;
+    const { date, time, durationMinutes, type, notes } = this.form.getRawValue();
+    const [h, m] = (time as string).split(':').map(Number);
+    const dt = new Date(date as Date);
+    dt.setHours(h, m, 0, 0);
+
+    const id = this.dialogData!.seizure!.id!;
+    this.seizureService.update(id, {
+      dateTime: this.toLocalIso(dt),
+      durationMinutes: durationMinutes ?? undefined,
+      type: type ?? undefined,
+      notes: notes || undefined,
+    }).subscribe(() => this.dialogRef.close(true));
   }
 
   submit(): void {

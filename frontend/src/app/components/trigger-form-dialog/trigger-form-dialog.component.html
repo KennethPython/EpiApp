@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Add Triggers</h2>
+<h2 mat-dialog-title>{{ editMode ? 'Edit Trigger' : 'Add Triggers' }}</h2>
 
 <mat-dialog-content>
 
@@ -9,31 +9,57 @@
     <mat-datepicker #picker></mat-datepicker>
   </mat-form-field>
 
-  <p class="section-label">Select triggers that applied:</p>
-
-  <div class="checkbox-list">
-    @for (option of options; track option.key) {
-      <mat-checkbox [(ngModel)]="option.checked">{{ option.label }}</mat-checkbox>
-    }
-  </div>
-
-  <div class="add-custom-row">
-    <mat-form-field appearance="outline" class="custom-input">
-      <mat-label>Add other trigger...</mat-label>
-      <input matInput [(ngModel)]="newCustomLabel" (keyup.enter)="addCustomTrigger()">
+  @if (editMode) {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Trigger type</mat-label>
+      <mat-select [(ngModel)]="editType">
+        @for (t of triggerTypes; track t.value) {
+          <mat-option [value]="t.value">{{ t.label }}</mat-option>
+        }
+      </mat-select>
     </mat-form-field>
-    <button mat-icon-button color="primary" (click)="addCustomTrigger()" [disabled]="!newCustomLabel.trim()">
-      <mat-icon>add_circle</mat-icon>
-    </button>
-  </div>
+
+    @if (editType === 'OTHER') {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Custom label</mat-label>
+        <input matInput [(ngModel)]="editLabel">
+      </mat-form-field>
+    }
+  }
+
+  @if (!editMode) {
+    <p class="section-label">Select triggers that applied:</p>
+
+    <div class="checkbox-list">
+      @for (option of options; track option.key) {
+        <mat-checkbox [(ngModel)]="option.checked">{{ option.label }}</mat-checkbox>
+      }
+    </div>
+
+    <div class="add-custom-row">
+      <mat-form-field appearance="outline" class="custom-input">
+        <mat-label>Add other trigger...</mat-label>
+        <input matInput [(ngModel)]="newCustomLabel" (keyup.enter)="addCustomTrigger()">
+      </mat-form-field>
+      <button mat-icon-button color="primary" (click)="addCustomTrigger()" [disabled]="!newCustomLabel.trim()">
+        <mat-icon>add_circle</mat-icon>
+      </button>
+    </div>
+  }
 
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()">Cancel</button>
-  <button mat-raised-button color="accent" (click)="submit()">
-    Add Triggers
-  </button>
+  @if (editMode) {
+    <button mat-raised-button color="primary" (click)="save()">
+      Save Changes
+    </button>
+  } @else {
+    <button mat-raised-button color="accent" (click)="submit()">
+      Add Triggers
+    </button>
+  }
 </mat-dialog-actions>
 
 <style>

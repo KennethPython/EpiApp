@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ viewMode ? 'Seizure Details' : 'Add Seizure' }}</h2>
+<h2 mat-dialog-title>{{ editMode ? 'Edit Seizure' : 'Add Seizure' }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="seizure-form">
@@ -6,9 +6,7 @@
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Date</mat-label>
       <input matInput [matDatepicker]="picker" formControlName="date">
-      @if (!viewMode) {
-        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-      }
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
       <mat-datepicker #picker></mat-datepicker>
     </mat-form-field>
 
@@ -38,16 +36,16 @@
 
   </form>
 
-  @if (viewMode && viewTriggers.length > 0) {
-    <p class="section-label">Triggers</p>
+  @if (editMode && editTriggers.length > 0) {
+    <p class="section-label">Linked triggers</p>
     <div class="trigger-list">
-      @for (t of viewTriggers; track t.id) {
+      @for (t of editTriggers; track t.id) {
         <span class="view-trigger">{{ getTriggerLabel(t) }}</span>
       }
     </div>
   }
 
-  @if (!viewMode) {
+  @if (!editMode) {
     <p class="section-label">Triggers (optional)</p>
     <div class="trigger-list">
       @for (opt of triggerOptions; track opt.key) {
@@ -69,8 +67,12 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="cancel()">{{ viewMode ? 'Close' : 'Cancel' }}</button>
-  @if (!viewMode) {
+  <button mat-button (click)="cancel()">Cancel</button>
+  @if (editMode) {
+    <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid">
+      Save Changes
+    </button>
+  } @else {
     <button mat-raised-button color="warn" (click)="submit()" [disabled]="form.invalid">
       Add Seizure
     </button>

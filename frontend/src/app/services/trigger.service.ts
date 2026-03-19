@@ -21,6 +21,10 @@ export class TriggerService {
     return this.http.post<Trigger>(this.apiUrl, trigger);
   }
 
+  update(id: number, trigger: Trigger): Observable<Trigger> {
+    return this.http.put<Trigger>(`${this.apiUrl}/${id}`, trigger);
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
