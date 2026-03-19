@@ -3,6 +3,7 @@ package com.epiapp.controller;
 import com.epiapp.model.MedicationLog;
 import com.epiapp.model.User;
 import com.epiapp.repository.MedicationLogRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +40,17 @@ public class MedicationLogController {
     @PostMapping
     public MedicationLog markTaken(@RequestBody MedicationLog log, @AuthenticationPrincipal User currentUser) {
         log.setUserId(currentUser.getId());
+        log.setTakenAt(java.time.LocalDateTime.now());
         return medicationLogRepository.save(log);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> untake(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
+        medicationLogRepository.findById(id).ifPresent(log -> {
+            if (log.getUserId().equals(currentUser.getId())) {
+                medicationLogRepository.deleteById(id);
+            }
+        });
+        return ResponseEntity.noContent().build();
     }
 }

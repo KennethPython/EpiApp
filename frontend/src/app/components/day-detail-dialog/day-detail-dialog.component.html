@@ -2,7 +2,7 @@
 
 <mat-dialog-content>
 
-  @if (seizures.length === 0 && triggers.length === 0) {
+  @if (seizures.length === 0 && triggers.length === 0 && medGroups.length === 0) {
     <p class="empty-message">No events recorded on this day.</p>
   }
 
@@ -42,6 +42,33 @@
     </mat-list>
   }
 
+  @if (medGroups.length > 0) {
+    <h3 class="section-title med-color">Medications</h3>
+    @for (group of medGroups; track group.time) {
+      <div class="time-group">
+        <div class="time-header">
+          <span class="time-label">{{ group.time }}</span>
+          @if (!allTaken(group)) {
+            <button mat-button class="take-all-btn" (click)="takeAll(group)">Take all</button>
+          }
+        </div>
+        @for (entry of group.entries; track entry.medication.id) {
+          <div class="med-entry" (click)="toggleTaken(entry, group)">
+            <mat-icon [class.med-taken]="entry.log" [class.med-untaken]="!entry.log">
+              {{ entry.log ? 'check_circle' : 'radio_button_unchecked' }}
+            </mat-icon>
+            <span [class.med-taken-text]="entry.log">
+              {{ entry.medication.name }} {{ entry.medication.dosage }}
+            </span>
+            @if (entry.log?.takenAt) {
+              <span class="taken-time">{{ formatTakenAt(entry.log!.takenAt!) }}</span>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+
 </mat-dialog-content>
 
 <mat-dialog-actions>
@@ -64,4 +91,15 @@
   .seizure-row:hover { background-color: rgba(244, 67, 54, 0.05); }
   .edit-hint { color: #3f51b5; font-size: 0.8rem; }
   .spacer { flex: 1; }
+  .med-color { color: #4caf50; }
+  .time-group { margin: 8px 0 12px; }
+  .time-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .time-label { font-weight: 600; font-size: 0.9rem; color: rgba(0,0,0,0.7); }
+  .take-all-btn { font-size: 0.8rem; min-width: 0; padding: 0 8px; height: 28px; line-height: 28px; }
+  .med-entry { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; border-radius: 4px; }
+  .med-entry:hover { background: rgba(76,175,80,0.06); }
+  .med-taken { color: #4caf50; }
+  .med-untaken { color: rgba(0,0,0,0.3); }
+  .med-taken-text { color: rgba(0,0,0,0.5); text-decoration: line-through; }
+  .taken-time { margin-left: auto; font-size: 0.8rem; color: rgba(0,0,0,0.45); }
 </style>
