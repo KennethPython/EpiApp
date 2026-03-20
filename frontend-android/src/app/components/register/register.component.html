@@ -1,0 +1,46 @@
+<div class="register-page">
+  <mat-card class="register-card">
+    <mat-card-header>
+      <mat-card-title>Create Account</mat-card-title>
+      <mat-card-subtitle>EpiApp — Epilepsy Tracker</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Username</mat-label>
+          <input matInput formControlName="username">
+          @if (form.get('username')!.touched && form.get('username')!.errors?.['required']) {
+            <mat-error>Username is required.</mat-error>
+          }
+          @if (form.get('username')!.touched && form.get('username')!.errors?.['minlength']) {
+            <mat-error>Username must be at least 3 characters.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" formControlName="password">
+          @if (passwordErrors) {
+            <mat-error>{{ passwordErrors }}</mat-error>
+          }
+        </mat-form-field>
+
+        <p class="hint">Password must be at least 8 characters and contain a number and a special character.</p>
+      </form>
+
+      @if (errorMessage) {
+        <p class="error">{{ errorMessage }}</p>
+      }
+    </mat-card-content>
+
+    <mat-card-actions class="actions">
+      <button mat-raised-button color="primary" class="full-width" (click)="register()" [disabled]="form.invalid">
+        Register
+      </button>
+      <button mat-stroked-button class="full-width" (click)="goToLogin()">
+        Back to Login
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

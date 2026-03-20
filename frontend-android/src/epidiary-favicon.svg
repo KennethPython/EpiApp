@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Background -->
+  <rect width="48" height="48" rx="10" fill="#185FA5"/>
+
+  <!-- Calendar shell -->
+  <rect x="7" y="16" width="34" height="26" rx="3" fill="none" stroke="white" stroke-width="1.4"/>
+
+  <!-- Ring tabs -->
+  <rect x="14" y="12" width="4" height="8" rx="2" fill="white" opacity="0.85"/>
+  <rect x="30" y="12" width="4" height="8" rx="2" fill="white" opacity="0.85"/>
+
+  <!-- Header bar inside calendar -->
+  <rect x="7" y="16" width="34" height="9" rx="3" fill="white" opacity="0.15"/>
+  <line x1="7" y1="25" x2="41" y2="25" stroke="white" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- EEG pulse line replaces day-dot row -->
+  <polyline
+    points="8,33 11,33 14,27 17,39 20,30 24,33 28,33 31,28 34,33 41,33"
+    fill="none"
+    stroke="#85B7EB"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    clip-path="url(#cal-clip)"
+  />
+
+  <!-- Single highlighted day dot -->
+  <circle cx="24" cy="39" r="3.5" fill="#378ADD"/>
+
+  <clipPath id="cal-clip">
+    <rect x="7" y="16" width="34" height="26" rx="3"/>
+  </clipPath>
+</svg>

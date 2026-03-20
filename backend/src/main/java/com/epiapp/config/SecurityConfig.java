@@ -48,7 +48,10 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
             "http://localhost:4200",
-            "https://epilappsy.netlify.app"
+            "https://epilappsy.netlify.app",
+            "capacitor://localhost",
+            "https://localhost",
+            "http://localhost"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

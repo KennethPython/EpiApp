@@ -1,0 +1,71 @@
+<h2 mat-dialog-title>{{ editMode ? 'Edit Trigger' : 'Add Triggers' }}</h2>
+
+<mat-dialog-content>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Date</mat-label>
+    <input matInput [matDatepicker]="picker" [(ngModel)]="date">
+    <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+  </mat-form-field>
+
+  @if (editMode) {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Trigger type</mat-label>
+      <mat-select [(ngModel)]="editType">
+        @for (t of triggerTypes; track t.value) {
+          <mat-option [value]="t.value">{{ t.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (editType === 'OTHER') {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Custom label</mat-label>
+        <input matInput [(ngModel)]="editLabel">
+      </mat-form-field>
+    }
+  }
+
+  @if (!editMode) {
+    <p class="section-label">Select triggers that applied:</p>
+
+    <div class="checkbox-list">
+      @for (option of options; track option.key) {
+        <mat-checkbox [(ngModel)]="option.checked">{{ option.label }}</mat-checkbox>
+      }
+    </div>
+
+    <div class="add-custom-row">
+      <mat-form-field appearance="outline" class="custom-input">
+        <mat-label>Add other trigger...</mat-label>
+        <input matInput [(ngModel)]="newCustomLabel" (keyup.enter)="addCustomTrigger()">
+      </mat-form-field>
+      <button mat-icon-button color="primary" (click)="addCustomTrigger()" [disabled]="!newCustomLabel.trim()">
+        <mat-icon>add_circle</mat-icon>
+      </button>
+    </div>
+  }
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  @if (editMode) {
+    <button mat-raised-button color="primary" (click)="save()">
+      Save Changes
+    </button>
+  } @else {
+    <button mat-raised-button color="accent" (click)="submit()">
+      Add Triggers
+    </button>
+  }
+</mat-dialog-actions>
+
+<style>
+  .full-width { width: 100%; }
+  .section-label { margin: 4px 0 6px; color: rgba(0,0,0,0.6); font-size: 0.9rem; }
+  .checkbox-list { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; }
+  .add-custom-row { display: flex; align-items: center; gap: 8px; }
+  .custom-input { flex: 1; }
+</style>

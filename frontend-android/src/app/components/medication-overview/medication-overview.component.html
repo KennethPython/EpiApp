@@ -1,0 +1,39 @@
+@if (hasMedications) {
+  <mat-card class="overview-card">
+    <mat-card-content>
+      <h3 class="overview-title">Today's Medication</h3>
+
+      <div class="groups-row">
+        @for (group of groups; track group.time) {
+          <div class="time-group">
+            <div class="time-header">
+              <span class="time-label">{{ group.time }}</span>
+              @if (!allTaken(group)) {
+                <button mat-stroked-button color="primary" class="take-all-btn" (click)="takeAll(group)">
+                  <mat-icon>check_circle</mat-icon> Take all
+                </button>
+              }
+            </div>
+
+            @for (entry of group.entries; track entry.medication.id) {
+              <div class="med-row" [class.taken]="!!entry.log">
+                <div class="med-info">
+                  <span class="med-name">{{ entry.medication.name }}</span>
+                  @if (entry.medication.dosage) {
+                    <span class="med-dosage">{{ entry.medication.dosage }}</span>
+                  }
+                  @if (entry.log?.takenAt) {
+                    <span class="taken-at">taken at {{ formatTakenAt(entry.log!.takenAt!) }}</span>
+                  }
+                </div>
+                <button mat-icon-button (click)="openEdit(entry.medication)" aria-label="Edit medication">
+                  <mat-icon>edit</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+}

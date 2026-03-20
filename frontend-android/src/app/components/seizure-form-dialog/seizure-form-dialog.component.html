@@ -1,0 +1,90 @@
+<h2 mat-dialog-title>{{ editMode ? 'Edit Seizure' : 'Add Seizure' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="seizure-form">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Date</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="date">
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Time</mat-label>
+      <input matInput type="time" formControlName="time">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Duration (minutes)</mat-label>
+      <input matInput type="number" formControlName="durationMinutes" min="1">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Seizure Type</mat-label>
+      <mat-select formControlName="type">
+        @for (st of seizureTypes; track st.value) {
+          <mat-option [value]="st.value">{{ st.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Notes</mat-label>
+      <textarea matInput formControlName="notes" rows="3"></textarea>
+    </mat-form-field>
+
+  </form>
+
+  @if (editMode && editTriggers.length > 0) {
+    <p class="section-label">Linked triggers</p>
+    <div class="trigger-list">
+      @for (t of editTriggers; track t.id) {
+        <span class="view-trigger">{{ getTriggerLabel(t) }}</span>
+      }
+    </div>
+  }
+
+  @if (!editMode) {
+    <p class="section-label">Triggers (optional)</p>
+    <div class="trigger-list">
+      @for (opt of triggerOptions; track opt.key) {
+        <mat-checkbox [(ngModel)]="opt.checked">{{ opt.label }}</mat-checkbox>
+      }
+    </div>
+
+    <div class="add-custom-row">
+      <mat-form-field appearance="outline" class="custom-input">
+        <mat-label>Add other trigger</mat-label>
+        <input matInput [(ngModel)]="newCustomLabel" (keyup.enter)="addCustomTrigger()">
+      </mat-form-field>
+      <button mat-icon-button color="primary" (click)="addCustomTrigger()" [disabled]="!newCustomLabel.trim()" aria-label="Add custom trigger">
+        <mat-icon>add_circle</mat-icon>
+      </button>
+    </div>
+  }
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  @if (editMode) {
+    <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid">
+      Save Changes
+    </button>
+  } @else {
+    <button mat-raised-button color="warn" (click)="submit()" [disabled]="form.invalid">
+      Add Seizure
+    </button>
+  }
+</mat-dialog-actions>
+
+<style>
+  .seizure-form { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+  .full-width { width: 100%; }
+  .section-label { margin: 4px 0 4px; color: rgba(0,0,0,0.6); font-size: 0.9rem; }
+  .trigger-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+  .add-custom-row { display: flex; align-items: center; gap: 4px; }
+  .custom-input { flex: 1; }
+  .view-trigger { font-size: 0.9rem; color: rgba(0,0,0,0.75); padding: 2px 0; }
+</style>
