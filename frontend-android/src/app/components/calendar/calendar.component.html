@@ -78,75 +78,18 @@
   <!-- ── Main content ─────────────────────────────────────── -->
   <div class="main-content">
 
-    <!-- Action buttons -->
-    <div class="fab-container">
-      <button mat-fab extended color="primary" (click)="openAddDialog()">
-        <mat-icon>add</mat-icon>
-        Add seizures / triggers
-      </button>
-      <button mat-fab extended color="accent" (click)="openAddMedicationDialog()">
-        <mat-icon>add</mat-icon>
-        Add medication
-      </button>
-    </div>
-
     <mat-card class="calendar-card">
       <mat-card-content>
 
-        <!-- Card header row: settings button + view toggle -->
+        <!-- Card header row: view toggle only -->
         <div class="card-header-row">
-          <button mat-icon-button class="settings-btn"
-                  [class.active]="showSettings"
-                  (click)="showSettings = !showSettings"
-                  aria-label="Settings">
-            <mat-icon>menu</mat-icon>
-          </button>
           <div class="view-toggle">
             <mat-button-toggle-group [value]="view" (change)="setView($event.value)">
               <mat-button-toggle value="month">Month</mat-button-toggle>
               <mat-button-toggle value="year">Year</mat-button-toggle>
             </mat-button-toggle-group>
           </div>
-          <div class="header-spacer"></div>
         </div>
-
-        <!-- Settings panel (slides in below header) -->
-        @if (showSettings) {
-          <div class="settings-panel">
-            <mat-tab-group>
-              <mat-tab label="Colors">
-                <div class="color-settings">
-
-                  <div class="color-row" (click)="openColorPicker('seizure')">
-                    <span class="color-swatch" [style.background-color]="colors.seizure"></span>
-                    <span class="color-label">Seizure</span>
-                    <mat-icon class="legend-edit-icon">edit</mat-icon>
-                  </div>
-
-                  <div class="color-row" (click)="openColorPicker('trigger')">
-                    <span class="color-swatch" [style.background-color]="colors.trigger"></span>
-                    <span class="color-label">Trigger</span>
-                    <mat-icon class="legend-edit-icon">edit</mat-icon>
-                  </div>
-
-                  <div class="color-row" (click)="openColorPicker('med')">
-                    <span class="color-swatch color-swatch-dot" [style.background-color]="colors.med"></span>
-                    <span class="color-label">Medication taken</span>
-                    <mat-icon class="legend-edit-icon">edit</mat-icon>
-                  </div>
-
-                  <div class="color-row" (click)="openColorPicker('med')">
-                    <span class="color-swatch color-swatch-dot color-swatch-missed"
-                          [style.border-color]="colors.med"></span>
-                    <span class="color-label">Medication missed</span>
-                    <mat-icon class="legend-edit-icon">edit</mat-icon>
-                  </div>
-
-                </div>
-              </mat-tab>
-            </mat-tab-group>
-          </div>
-        }
 
         <!-- MONTH VIEW -->
         @if (view === 'month') {
@@ -266,4 +209,65 @@
     }
   </div>
 
+</div>
+
+<!-- Settings overlay -->
+@if (showSettings) {
+  <div class="settings-overlay-backdrop" (click)="showSettings = false"></div>
+  <div class="settings-overlay">
+    <div class="settings-overlay-header">
+      <h3>Settings</h3>
+      <button mat-icon-button (click)="showSettings = false"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="color-settings">
+      <div class="color-row" (click)="openColorPicker('seizure')">
+        <span class="color-swatch" [style.background-color]="colors.seizure"></span>
+        <span class="color-label">Seizure</span>
+        <mat-icon class="legend-edit-icon">edit</mat-icon>
+      </div>
+      <div class="color-row" (click)="openColorPicker('trigger')">
+        <span class="color-swatch" [style.background-color]="colors.trigger"></span>
+        <span class="color-label">Trigger</span>
+        <mat-icon class="legend-edit-icon">edit</mat-icon>
+      </div>
+      <div class="color-row" (click)="openColorPicker('med')">
+        <span class="color-swatch color-swatch-dot" [style.background-color]="colors.med"></span>
+        <span class="color-label">Medication taken</span>
+        <mat-icon class="legend-edit-icon">edit</mat-icon>
+      </div>
+      <div class="color-row" (click)="openColorPicker('med')">
+        <span class="color-swatch color-swatch-dot color-swatch-missed"
+              [style.border-color]="colors.med"></span>
+        <span class="color-label">Medication missed</span>
+        <mat-icon class="legend-edit-icon">edit</mat-icon>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Bottom nav bar -->
+<div class="bottom-nav">
+  @if (speedDialOpen) {
+    <div class="speed-dial-backdrop" (click)="speedDialOpen = false"></div>
+    <div class="speed-dial-actions">
+      <div class="speed-dial-item">
+        <span class="speed-dial-label">Add seizure / trigger</span>
+        <button mat-mini-fab color="primary" (click)="openAddDialog(); speedDialOpen = false">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+      <div class="speed-dial-item">
+        <span class="speed-dial-label">Add medication</span>
+        <button mat-mini-fab color="accent" (click)="openAddMedicationDialog(); speedDialOpen = false">
+          <mat-icon>medication</mat-icon>
+        </button>
+      </div>
+    </div>
+  }
+  <button mat-fab class="fab-center" (click)="speedDialOpen = !speedDialOpen">
+    <mat-icon>{{ speedDialOpen ? 'close' : 'add' }}</mat-icon>
+  </button>
+  <button mat-icon-button class="nav-settings-btn" (click)="showSettings = !showSettings" aria-label="Settings">
+    <mat-icon>settings</mat-icon>
+  </button>
 </div>

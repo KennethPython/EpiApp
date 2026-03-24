@@ -399,14 +399,112 @@
   height: 4px;
 }
 
+// ── Settings overlay ──────────────────────────────────────────
+.settings-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+}
+
+.settings-overlay {
+  position: fixed;
+  bottom: 64px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  z-index: 201;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.settings-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+}
+
+// ── Bottom nav bar ────────────────────────────────────────────
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.fab-center {
+  position: absolute;
+  top: -28px;
+  transform: scale(1.2);
+}
+
+.nav-settings-btn {
+  position: absolute;
+  right: 24px;
+}
+
+.speed-dial-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.speed-dial-actions {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 101;
+}
+
+.speed-dial-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.speed-dial-label {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
 // ── Responsive: hide sidebar on mobile ───────────────────────
 @media (max-width: 680px) {
   .page-layout {
     flex-direction: column;
     padding: 0 8px;
+    padding-bottom: 80px;
   }
 
   .sidebar {
     display: none;
   }
+}
+
+// add bottom padding on all screen sizes so content doesn't hide behind nav
+.page-layout {
+  padding-bottom: 80px;
 }

@@ -85,6 +85,7 @@ export class CalendarComponent implements OnInit {
 
   view: 'month' | 'year' = 'month';
   showSettings = false;
+  speedDialOpen = false;
 
   currentYear = new Date().getFullYear();
   currentMonth = new Date().getMonth();
