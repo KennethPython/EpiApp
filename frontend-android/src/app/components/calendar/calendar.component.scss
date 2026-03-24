@@ -118,6 +118,11 @@
 
 .calendar-card {
   border-radius: 12px;
+
+  @media (max-width: 680px) {
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 
 .card-header-row {
@@ -495,8 +500,15 @@
 @media (max-width: 680px) {
   .page-layout {
     flex-direction: column;
-    padding: 0 8px;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
     padding-bottom: 80px;
+    gap: 0;
+  }
+
+  .main-content {
+    width: 100%;
   }
 
   .sidebar {
