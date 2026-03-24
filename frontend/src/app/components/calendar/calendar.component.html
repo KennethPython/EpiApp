@@ -78,18 +78,6 @@
   <!-- ── Main content ─────────────────────────────────────── -->
   <div class="main-content">
 
-    <!-- Action buttons -->
-    <div class="fab-container">
-      <button mat-fab extended color="primary" (click)="openAddDialog()">
-        <mat-icon>add</mat-icon>
-        Add seizures / triggers
-      </button>
-      <button mat-fab extended color="accent" (click)="openAddMedicationDialog()">
-        <mat-icon>add</mat-icon>
-        Add medication
-      </button>
-    </div>
-
     <mat-card class="calendar-card">
       <mat-card-content>
 
@@ -260,6 +248,18 @@
 
       </mat-card-content>
     </mat-card>
+
+    <!-- Action buttons -->
+    <div class="fab-container">
+      <button mat-fab extended color="primary" (click)="openAddDialog()">
+        <mat-icon>add</mat-icon>
+        Add seizures / triggers
+      </button>
+      <button mat-fab extended color="accent" (click)="openAddMedicationDialog()">
+        <mat-icon>add</mat-icon>
+        Add medication
+      </button>
+    </div>
 
     @if (view === 'month') {
       <app-medication-overview (medicationsTaken)="loadMedData()"></app-medication-overview>
