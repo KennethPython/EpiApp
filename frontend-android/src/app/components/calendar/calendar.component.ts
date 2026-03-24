@@ -88,6 +88,16 @@ export class CalendarComponent implements OnInit {
   view: 'month' | 'year' = 'month';
   showSettings = false;
   speedDialOpen = false;
+  showExport = false;
+  exportYear = new Date().getFullYear();
+  selectedExportMonths = new Set<string>();
+
+  readonly monthNames = [
+    { num: 1, label: 'Jan' }, { num: 2, label: 'Feb' }, { num: 3, label: 'Mar' },
+    { num: 4, label: 'Apr' }, { num: 5, label: 'May' }, { num: 6, label: 'Jun' },
+    { num: 7, label: 'Jul' }, { num: 8, label: 'Aug' }, { num: 9, label: 'Sep' },
+    { num: 10, label: 'Oct' }, { num: 11, label: 'Nov' }, { num: 12, label: 'Dec' },
+  ];
 
   currentYear = new Date().getFullYear();
   currentMonth = new Date().getMonth();
@@ -413,5 +423,51 @@ export class CalendarComponent implements OnInit {
   isToday(date: Date | null): boolean {
     if (!date) return false;
     return this.localDateString(date) === this.localDateString(new Date());
+  }
+
+  toggleExportMonth(month: number) {
+    const key = `${this.exportYear}-${month}`;
+    if (this.selectedExportMonths.has(key)) {
+      this.selectedExportMonths.delete(key);
+    } else {
+      this.selectedExportMonths.add(key);
+    }
+  }
+
+  isExportMonthSelected(month: number): boolean {
+    return this.selectedExportMonths.has(`${this.exportYear}-${month}`);
+  }
+
+  exportSelected() {
+    const months = [...this.selectedExportMonths];
+    if (months.length === 0) return;
+    this.doExport(months);
+  }
+
+  exportAll() {
+    this.doExport(null);
+  }
+
+  private doExport(months: string[] | null) {
+    const inRange = (dateStr: string) => {
+      if (!months) return true;
+      const [year, month] = dateStr.substring(0, 7).split('-').map(Number);
+      return months.includes(`${year}-${month}`);
+    };
+
+    const data = {
+      seizures: this.seizures.filter(s => inRange(s.dateTime)),
+      triggers: this.triggers.filter(t => inRange(t.date)),
+      medicationLogs: this.medLogs.filter(l => inRange(l.date)),
+      medications: this.medications,
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `epilappsy-export-${new Date().toISOString().substring(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

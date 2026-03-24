@@ -417,6 +417,8 @@
   bottom: 64px;
   left: 0;
   right: 0;
+  max-height: 80vh;
+  overflow-y: auto;
   background: white;
   border-radius: 16px 16px 0 0;
   padding: 16px;
@@ -434,6 +436,68 @@
     margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
+  }
+}
+
+// ── Export section ────────────────────────────────────────────
+.export-section {
+  margin-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-top: 16px;
+}
+
+.export-toggle-btn {
+  width: 100%;
+}
+
+.month-picker {
+  margin-top: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.month-picker-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.export-year-label {
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 48px;
+  text-align: center;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+
+  button {
+    font-size: 0.8rem;
+    padding: 0 4px;
+    min-width: 0;
+  }
+
+  .month-selected {
+    background-color: #1976d2;
+    color: white;
+    border-color: #1976d2;
+  }
+}
+
+.export-actions {
+  display: flex;
+  gap: 8px;
+
+  button {
+    flex: 1;
+    font-size: 0.8rem;
   }
 }
 

@@ -242,6 +242,40 @@
         <mat-icon class="legend-edit-icon">edit</mat-icon>
       </div>
     </div>
+
+    <div class="export-section">
+      <button mat-stroked-button class="export-toggle-btn" (click)="showExport = !showExport">
+        <mat-icon>download</mat-icon>
+        Export data
+      </button>
+
+      @if (showExport) {
+        <div class="month-picker">
+          <div class="month-picker-nav">
+            <button mat-icon-button (click)="exportYear = exportYear - 1">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <span class="export-year-label">{{ exportYear }}</span>
+            <button mat-icon-button (click)="exportYear = exportYear + 1">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+          <div class="month-grid">
+            @for (m of monthNames; track m.num) {
+              <button mat-stroked-button
+                      [class.month-selected]="isExportMonthSelected(m.num)"
+                      (click)="toggleExportMonth(m.num)">
+                {{ m.label }}
+              </button>
+            }
+          </div>
+          <div class="export-actions">
+            <button mat-stroked-button (click)="exportSelected()">Export selected</button>
+            <button mat-stroked-button (click)="exportAll()">Export all</button>
+          </div>
+        </div>
+      }
+    </div>
   </div>
 }
 
