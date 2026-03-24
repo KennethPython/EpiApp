@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -73,6 +74,7 @@ export interface YearMonthGrid {
     MatButtonToggleModule,
     MatTabsModule,
     MedicationOverviewComponent,
+    RouterLink,
   ],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.scss']

@@ -247,6 +247,9 @@
 
 <!-- Bottom nav bar -->
 <div class="bottom-nav">
+  <button mat-icon-button class="nav-home-btn" routerLink="/calendar" aria-label="Home">
+    <mat-icon>home</mat-icon>
+  </button>
   @if (speedDialOpen) {
     <div class="speed-dial-backdrop" (click)="speedDialOpen = false"></div>
     <div class="speed-dial-actions">
