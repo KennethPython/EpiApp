@@ -445,28 +445,63 @@ export class CalendarComponent implements OnInit {
   }
 
   exportAll() {
-    this.doExport(null);
+    const allDates = [
+      ...this.seizures.map(s => s.dateTime.substring(0, 10)),
+      ...this.triggers.map(t => t.date),
+      ...this.medLogs.map(l => l.date),
+    ].filter(Boolean).sort();
+
+    if (allDates.length === 0) return;
+
+    const [startYear, startMonth] = allDates[0].split('-').map(Number);
+    const today = new Date();
+    const endYear = today.getFullYear();
+    const endMonth = today.getMonth() + 1;
+
+    const months: string[] = [];
+    let y = startYear, m = startMonth;
+    while (y < endYear || (y === endYear && m <= endMonth)) {
+      months.push(`${y}-${m}`);
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+
+    this.doExport(months);
   }
 
-  private doExport(months: string[] | null) {
+  private doExport(months: string[]) {
     const inRange = (dateStr: string) => {
-      if (!months) return true;
       const [year, month] = dateStr.substring(0, 7).split('-').map(Number);
       return months.includes(`${year}-${month}`);
     };
 
-    const data = {
-      seizures: this.seizures.filter(s => inRange(s.dateTime)),
-      triggers: this.triggers.filter(t => inRange(t.date)),
-      medicationLogs: this.medLogs.filter(l => inRange(l.date)),
-      medications: this.medications,
-    };
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const lines: string[] = ['Type,Date,Time,Detail,Duration (min),Notes'];
+
+    for (const s of this.seizures.filter(s => inRange(s.dateTime))) {
+      const [date, time] = s.dateTime.split('T');
+      const detail = s.type ? SEIZURE_TYPE_LABELS[s.type] : '';
+      lines.push(`Seizure,${date},${time ?? ''},${esc(detail)},${s.durationMinutes ?? ''},${esc(s.notes ?? '')}`);
+    }
+
+    for (const t of this.triggers.filter(t => inRange(t.date))) {
+      const detail = t.type === 'OTHER' ? (t.label ?? '') : TRIGGER_LABELS[t.type];
+      lines.push(`Trigger,${t.date},,${esc(detail)},,`);
+    }
+
+    for (const l of this.medLogs.filter(l => inRange(l.date))) {
+      const med = this.medications.find(m => m.id === l.medicationId);
+      const name = med ? `${med.name} ${med.dosage}` : `Med #${l.medicationId}`;
+      const status = l.takenAt ? 'Taken' : 'Missed';
+      lines.push(`Medication,${l.date},${l.scheduledTime},${esc(name)},,${status}`);
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `epilappsy-export-${new Date().toISOString().substring(0, 10)}.json`;
+    a.download = `epilappsy-export-${new Date().toISOString().substring(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
