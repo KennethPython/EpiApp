@@ -23,6 +23,7 @@ import { DayDetailDialogComponent } from '../day-detail-dialog/day-detail-dialog
 import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medication-dialog.component';
 import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
 
 export interface MedSlot {
   time: string;
@@ -170,7 +171,8 @@ export class CalendarComponent implements OnInit {
     private medicationService: MedicationService,
     private medicationLogService: MedicationLogService,
     private dialog: MatDialog,
-    private authService: AuthService
+    private authService: AuthService,
+    private notificationService: NotificationService,
   ) {}
 
   ngOnInit(): void {
@@ -199,6 +201,7 @@ export class CalendarComponent implements OnInit {
       this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
       this.buildCalendar();
       this.buildSidebarMonth();
+      this.notificationService.scheduleForMedications(medications);
     });
   }
 
