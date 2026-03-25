@@ -132,14 +132,26 @@
   .sleep-chevron { margin-left: auto; opacity: 0.7; }
 }
 
-.sleep-ok {
-  background: #e8f5e9;
-  color: #2e7d32;
+.sleep-threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-radius: 6px;
+  transition: background-color 0.1s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
 }
 
-.sleep-bad {
-  background: #ffebee;
-  color: #c62828;
+.threshold-input {
+  width: 44px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 0.875rem;
+  text-align: center;
 }
 
 .sleep-detail {
@@ -150,15 +162,6 @@
   margin-bottom: 8px;
 }
 
-.sleep-detail-ok {
-  background: #f1f8f1;
-  color: #388e3c;
-}
-
-.sleep-detail-bad {
-  background: #fff5f5;
-  color: #c62828;
-}
 
 .calendar-card {
   border-radius: 12px;
@@ -481,6 +484,57 @@
     font-size: 1.1rem;
     font-weight: 600;
   }
+}
+
+// ── Health Connect section ─────────────────────────────────────
+.health-connect-section {
+  margin-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 8px;
+}
+
+.health-connect-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.hc-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.hc-status-text {
+  margin: 4px 0 8px;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.hc-granted { color: #2e7d32 !important; font-weight: 600; }
+.hc-denied  { color: #c62828 !important; }
+
+.hc-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+
+  button { font-size: 0.8rem; }
+}
+
+.hc-debug {
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.75);
+  line-height: 1.5;
 }
 
 // ── Export section ────────────────────────────────────────────

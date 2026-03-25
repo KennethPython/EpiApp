@@ -3,21 +3,24 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 
 interface HealthConnectPlugin {
   checkAvailability(): Promise<{ available: boolean; status: number }>;
-  requestPermissions(): Promise<{ granted: boolean }>;
+  requestHealthPermissions(): Promise<{ granted: boolean }>;
   getSleepLastNight(): Promise<{
     totalMinutes: number;
     totalHours: number;
     belowThreshold: boolean;
     sessions: string;
+    sessionCount: number;
   }>;
-  getStepsToday(): Promise<{ steps: number }>;
 }
 
 const HealthConnect = registerPlugin<HealthConnectPlugin>('HealthConnect');
 
 export interface SleepResult {
   totalHours: number;
-  belowThreshold: boolean; // true when < 6 hours
+  totalMinutes: number;
+  sessionCount: number;
+  sessions: string;
+  belowThreshold: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -33,12 +36,12 @@ export class HealthConnectService {
     }
   }
 
-  async requestPermissions(): Promise<boolean> {
+  async requestPermissions(): Promise<{ granted: boolean; error?: string }> {
     try {
-      const { granted } = await HealthConnect.requestPermissions();
-      return granted;
-    } catch {
-      return false;
+      const { granted } = await HealthConnect.requestHealthPermissions();
+      return { granted };
+    } catch (e: any) {
+      return { granted: false, error: e?.message ?? String(e) };
     }
   }
 
@@ -47,17 +50,11 @@ export class HealthConnectService {
       const data = await HealthConnect.getSleepLastNight();
       return {
         totalHours: Math.round(data.totalHours * 10) / 10,
+        totalMinutes: data.totalMinutes,
+        sessionCount: data.sessionCount,
+        sessions: data.sessions,
         belowThreshold: data.belowThreshold,
       };
-    } catch {
-      return null;
-    }
-  }
-
-  async getStepsToday(): Promise<number | null> {
-    try {
-      const { steps } = await HealthConnect.getStepsToday();
-      return steps;
     } catch {
       return null;
     }

@@ -86,6 +86,8 @@ export class CalendarComponent implements OnInit {
   @ViewChild('seizureInput') seizureInputEl!: ElementRef<HTMLInputElement>;
   @ViewChild('triggerInput') triggerInputEl!: ElementRef<HTMLInputElement>;
   @ViewChild('medInput') medInputEl!: ElementRef<HTMLInputElement>;
+  @ViewChild('sleepOkInput') sleepOkInputEl!: ElementRef<HTMLInputElement>;
+  @ViewChild('sleepBadInput') sleepBadInputEl!: ElementRef<HTMLInputElement>;
 
   view: 'month' | 'year' = 'month';
   showSettings = false;
@@ -93,6 +95,8 @@ export class CalendarComponent implements OnInit {
   showExport = false;
   sleepHours: number | null = null;
   sleepBlockOpen = false;
+  healthPermissionStatus: 'unknown' | 'granted' | 'denied' | 'unavailable' = 'unknown';
+  sleepDebugText: string | null = null;
   exportYear = new Date().getFullYear();
   selectedExportMonths = new Set<string>();
 
@@ -119,7 +123,8 @@ export class CalendarComponent implements OnInit {
   sidebarMonthGrid: YearMonthGrid | null = null;
   sidebarMedLogs: MedicationLog[] = [];
 
-  colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50' };
+  colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50', sleepOk: '#2e7d32', sleepBad: '#c62828' };
+  sleepThresholdHours = 8;
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly miniWeekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -146,9 +151,53 @@ export class CalendarComponent implements OnInit {
     return `epiapp_colors_${this.authService.getUsername() ?? 'default'}`;
   }
 
-  updateColor(key: 'seizure' | 'trigger' | 'med', event: Event): void {
+  updateColor(key: 'seizure' | 'trigger' | 'med' | 'sleepOk' | 'sleepBad', event: Event): void {
     this.colors[key] = (event.target as HTMLInputElement).value;
     localStorage.setItem(this.colorStorageKey, JSON.stringify(this.colors));
+  }
+
+  async loadSleepData(): Promise<void> {
+    const available = await this.healthConnect.isAvailable();
+    if (!available) { this.healthPermissionStatus = 'unavailable'; return; }
+    const result = await this.healthConnect.requestPermissions();
+    this.healthPermissionStatus = result.granted ? 'granted' : 'denied';
+    if (!result.granted) return;
+    const sleep = await this.healthConnect.getSleepLastNight();
+    if (sleep && sleep.totalHours > 0) this.sleepHours = sleep.totalHours;
+  }
+
+  async grantHealthPermissions(): Promise<void> {
+    const available = await this.healthConnect.isAvailable();
+    if (!available) { this.healthPermissionStatus = 'unavailable'; return; }
+    const result = await this.healthConnect.requestPermissions();
+    this.healthPermissionStatus = result.granted ? 'granted' : 'denied';
+  }
+
+  async syncSleepData(): Promise<void> {
+    this.sleepDebugText = 'Fetching...';
+    const sleep = await this.healthConnect.getSleepLastNight();
+    if (!sleep) {
+      this.sleepDebugText = 'Error: could not read sleep data (check permissions)';
+      return;
+    }
+    if (sleep.sessionCount === 0) {
+      this.sleepDebugText = 'No sleep sessions found in the last 2 days';
+      return;
+    }
+    this.sleepHours = sleep.totalHours;
+    const sessions = JSON.parse(sleep.sessions) as any[];
+    const lines = sessions.map((s: any) =>
+      `• ${s.startTime.substring(0, 16)} → ${s.endTime.substring(11, 16)} (${s.durationMinutes} min)`
+    );
+    this.sleepDebugText = `Total: ${sleep.totalHours}h (${sleep.totalMinutes} min)\n` + lines.join('\n');
+  }
+
+  updateSleepThreshold(event: Event): void {
+    const val = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(val) && val > 0) {
+      this.sleepThresholdHours = val;
+      localStorage.setItem(this.colorStorageKey + '_sleepThreshold', String(val));
+    }
   }
 
   @HostListener('window:resize')
@@ -156,8 +205,11 @@ export class CalendarComponent implements OnInit {
     if (window.innerWidth >= 681) this.showSettings = false;
   }
 
-  openColorPicker(type: 'seizure' | 'trigger' | 'med'): void {
-    const map = { seizure: this.seizureInputEl, trigger: this.triggerInputEl, med: this.medInputEl };
+  openColorPicker(type: 'seizure' | 'trigger' | 'med' | 'sleepOk' | 'sleepBad'): void {
+    const map = {
+      seizure: this.seizureInputEl, trigger: this.triggerInputEl, med: this.medInputEl,
+      sleepOk: this.sleepOkInputEl, sleepBad: this.sleepBadInputEl,
+    };
     map[type]?.nativeElement.click();
   }
 
@@ -165,6 +217,8 @@ export class CalendarComponent implements OnInit {
     try {
       const stored = localStorage.getItem(this.colorStorageKey);
       if (stored) this.colors = { ...this.colors, ...JSON.parse(stored) };
+      const threshold = localStorage.getItem(this.colorStorageKey + '_sleepThreshold');
+      if (threshold) this.sleepThresholdHours = parseInt(threshold, 10);
     } catch {}
   }
 
@@ -182,10 +236,7 @@ export class CalendarComponent implements OnInit {
   ngOnInit(): void {
     this.loadColors();
     this.loadEvents();
-    this.healthConnect.requestPermissions();
-    this.healthConnect.getSleepLastNight().then(sleep => {
-      if (sleep) this.sleepHours = sleep.totalHours;
-    });
+    this.loadSleepData();
   }
 
   private get todayMonthStr(): string {

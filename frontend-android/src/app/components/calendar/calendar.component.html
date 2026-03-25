@@ -7,6 +7,10 @@
          (input)="updateColor('trigger', $event)" class="color-input-hidden">
   <input #medInput type="color" [value]="colors.med"
          (input)="updateColor('med', $event)" class="color-input-hidden">
+  <input #sleepOkInput type="color" [value]="colors.sleepOk"
+         (input)="updateColor('sleepOk', $event)" class="color-input-hidden">
+  <input #sleepBadInput type="color" [value]="colors.sleepBad"
+         (input)="updateColor('sleepBad', $event)" class="color-input-hidden">
 
   <!-- ── Sidebar (desktop only) ───────────────────────────── -->
   <aside class="sidebar">
@@ -81,19 +85,19 @@
     <!-- Sleep block -->
     @if (sleepHours !== null) {
       <div class="sleep-block"
-           [class.sleep-ok]="sleepHours >= 6"
-           [class.sleep-bad]="sleepHours < 6"
+           [style.background-color]="sleepHours >= sleepThresholdHours ? colors.sleepOk + '22' : colors.sleepBad + '22'"
+           [style.color]="sleepHours >= sleepThresholdHours ? colors.sleepOk : colors.sleepBad"
            (click)="sleepBlockOpen = !sleepBlockOpen">
-        <mat-icon>{{ sleepHours >= 6 ? 'check_circle' : 'warning' }}</mat-icon>
-        <span>{{ sleepHours >= 6 ? 'Good sleep last night' : 'Low sleep last night' }}</span>
+        <mat-icon>{{ sleepHours >= sleepThresholdHours ? 'check_circle' : 'warning' }}</mat-icon>
+        <span>{{ sleepHours >= sleepThresholdHours ? 'Good sleep last night' : 'Low sleep last night' }}</span>
         <mat-icon class="sleep-chevron">{{ sleepBlockOpen ? 'expand_less' : 'expand_more' }}</mat-icon>
       </div>
       @if (sleepBlockOpen) {
         <div class="sleep-detail"
-             [class.sleep-detail-ok]="sleepHours >= 6"
-             [class.sleep-detail-bad]="sleepHours < 6">
+             [style.background-color]="(sleepHours >= sleepThresholdHours ? colors.sleepOk : colors.sleepBad) + '18'"
+             [style.color]="sleepHours >= sleepThresholdHours ? colors.sleepOk : colors.sleepBad">
           You slept <strong>{{ sleepHours }} hours</strong> last night.
-          @if (sleepHours < 6) { This may be a seizure trigger. }
+          @if (sleepHours < sleepThresholdHours) { This may be a seizure trigger. }
         </div>
       }
     }
@@ -261,6 +265,55 @@
         <span class="color-label">Medication missed</span>
         <mat-icon class="legend-edit-icon">edit</mat-icon>
       </div>
+
+      <div class="color-row" (click)="openColorPicker('sleepOk')">
+        <span class="color-swatch" [style.background-color]="colors.sleepOk"></span>
+        <span class="color-label">Good sleep</span>
+        <mat-icon class="legend-edit-icon">edit</mat-icon>
+      </div>
+
+      <div class="sleep-threshold-row">
+        <span class="color-swatch" [style.background-color]="colors.sleepBad"
+              (click)="openColorPicker('sleepBad')" style="cursor:pointer"></span>
+        <span class="color-label">Poor sleep if less than</span>
+        <input class="threshold-input" type="number" min="1" max="24"
+               [value]="sleepThresholdHours"
+               (change)="updateSleepThreshold($event)">
+        <span class="color-label">h</span>
+        <mat-icon class="legend-edit-icon" (click)="openColorPicker('sleepBad')">edit</mat-icon>
+      </div>
+    </div>
+
+    <div class="health-connect-section">
+      <div class="health-connect-row">
+        <mat-icon class="hc-icon">bedtime</mat-icon>
+        <span class="color-label">Samsung Health Connect</span>
+      </div>
+
+      @if (healthPermissionStatus === 'unavailable') {
+        <p class="hc-status-text hc-denied">Health Connect not available on this device</p>
+      } @else if (healthPermissionStatus === 'granted') {
+        <p class="hc-status-text hc-granted">Permission granted</p>
+      } @else if (healthPermissionStatus === 'denied') {
+        <p class="hc-status-text hc-denied">Permission denied — open Health Connect to grant access manually</p>
+      } @else {
+        <p class="hc-status-text">Permission not yet requested</p>
+      }
+
+      <div class="hc-buttons">
+        @if (healthPermissionStatus !== 'unavailable') {
+          <button mat-stroked-button (click)="grantHealthPermissions()">
+            {{ healthPermissionStatus === 'granted' ? 'Re-check permission' : 'Grant access' }}
+          </button>
+        }
+        @if (healthPermissionStatus === 'granted') {
+          <button mat-stroked-button (click)="syncSleepData()">Sync data</button>
+        }
+      </div>
+
+      @if (sleepDebugText) {
+        <pre class="hc-debug">{{ sleepDebugText }}</pre>
+      }
     </div>
 
     <div class="export-section">
