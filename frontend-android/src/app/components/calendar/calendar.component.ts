@@ -171,6 +171,19 @@ export class CalendarComponent implements OnInit {
     if (!available) { this.healthPermissionStatus = 'unavailable'; return; }
     const result = await this.healthConnect.requestPermissions();
     this.healthPermissionStatus = result.granted ? 'granted' : 'denied';
+    if (!result.granted) {
+      this.sleepDebugText = result.error ? 'Error: ' + result.error : null;
+    }
+  }
+
+  openHealthConnectSettings(): void {
+    this.healthConnect.openHealthConnectSettings();
+  }
+
+  async recheckPermission(): Promise<void> {
+    const result = await this.healthConnect.requestPermissions();
+    this.healthPermissionStatus = result.granted ? 'granted' : 'denied';
+    if (result.granted) this.sleepDebugText = null;
   }
 
   async syncSleepData(): Promise<void> {

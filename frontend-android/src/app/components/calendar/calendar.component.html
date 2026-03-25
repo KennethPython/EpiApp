@@ -295,21 +295,30 @@
       } @else if (healthPermissionStatus === 'granted') {
         <p class="hc-status-text hc-granted">Permission granted</p>
       } @else if (healthPermissionStatus === 'denied') {
-        <p class="hc-status-text hc-denied">Permission denied — open Health Connect to grant access manually</p>
+        <p class="hc-status-text hc-denied">Permission denied</p>
       } @else {
-        <p class="hc-status-text">Permission not yet requested</p>
+        <p class="hc-status-text">Not yet requested</p>
       }
 
       <div class="hc-buttons">
-        @if (healthPermissionStatus !== 'unavailable') {
-          <button mat-stroked-button (click)="grantHealthPermissions()">
-            {{ healthPermissionStatus === 'granted' ? 'Re-check permission' : 'Grant access' }}
-          </button>
+        @if (healthPermissionStatus !== 'unavailable' && healthPermissionStatus !== 'granted') {
+          <button mat-stroked-button (click)="grantHealthPermissions()">Grant access</button>
+        }
+        @if (healthPermissionStatus === 'denied') {
+          <button mat-stroked-button (click)="openHealthConnectSettings()">Open Health Connect</button>
         }
         @if (healthPermissionStatus === 'granted') {
+          <button mat-stroked-button (click)="recheckPermission()">Re-check</button>
           <button mat-stroked-button (click)="syncSleepData()">Sync data</button>
         }
       </div>
+
+      @if (healthPermissionStatus === 'denied') {
+        <p class="hc-status-text">
+          Tap "Open Health Connect", find EpilAppsy under App permissions and grant access. Then come back and tap Re-check.
+        </p>
+        <button mat-stroked-button (click)="recheckPermission()" style="margin-top:4px">Re-check after granting</button>
+      }
 
       @if (sleepDebugText) {
         <pre class="hc-debug">{{ sleepDebugText }}</pre>

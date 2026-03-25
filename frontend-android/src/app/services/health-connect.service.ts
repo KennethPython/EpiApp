@@ -4,6 +4,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 interface HealthConnectPlugin {
   checkAvailability(): Promise<{ available: boolean; status: number }>;
   requestHealthPermissions(): Promise<{ granted: boolean }>;
+  openHealthConnectSettings(): Promise<void>;
   getSleepLastNight(): Promise<{
     totalMinutes: number;
     totalHours: number;
@@ -43,6 +44,10 @@ export class HealthConnectService {
     } catch (e: any) {
       return { granted: false, error: e?.message ?? String(e) };
     }
+  }
+
+  async openHealthConnectSettings(): Promise<void> {
+    try { await HealthConnect.openHealthConnectSettings(); } catch {}
   }
 
   async getSleepLastNight(): Promise<SleepResult | null> {
