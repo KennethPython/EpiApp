@@ -91,6 +91,8 @@ export class CalendarComponent implements OnInit {
   showSettings = false;
   speedDialOpen = false;
   showExport = false;
+  sleepHours: number | null = null;
+  sleepBlockOpen = false;
   exportYear = new Date().getFullYear();
   selectedExportMonths = new Set<string>();
 
@@ -181,6 +183,9 @@ export class CalendarComponent implements OnInit {
     this.loadColors();
     this.loadEvents();
     this.healthConnect.requestPermissions();
+    this.healthConnect.getSleepLastNight().then(sleep => {
+      if (sleep) this.sleepHours = sleep.totalHours;
+    });
   }
 
   private get todayMonthStr(): string {

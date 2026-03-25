@@ -78,6 +78,26 @@
   <!-- ── Main content ─────────────────────────────────────── -->
   <div class="main-content">
 
+    <!-- Sleep block -->
+    @if (sleepHours !== null) {
+      <div class="sleep-block"
+           [class.sleep-ok]="sleepHours >= 6"
+           [class.sleep-bad]="sleepHours < 6"
+           (click)="sleepBlockOpen = !sleepBlockOpen">
+        <mat-icon>{{ sleepHours >= 6 ? 'check_circle' : 'warning' }}</mat-icon>
+        <span>{{ sleepHours >= 6 ? 'Good sleep last night' : 'Low sleep last night' }}</span>
+        <mat-icon class="sleep-chevron">{{ sleepBlockOpen ? 'expand_less' : 'expand_more' }}</mat-icon>
+      </div>
+      @if (sleepBlockOpen) {
+        <div class="sleep-detail"
+             [class.sleep-detail-ok]="sleepHours >= 6"
+             [class.sleep-detail-bad]="sleepHours < 6">
+          You slept <strong>{{ sleepHours }} hours</strong> last night.
+          @if (sleepHours < 6) { This may be a seizure trigger. }
+        </div>
+      }
+    }
+
     <mat-card class="calendar-card">
       <mat-card-content>
 

@@ -116,6 +116,50 @@
   min-width: 0;
 }
 
+// ── Sleep block ───────────────────────────────────────────────
+.sleep-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  .sleep-chevron { margin-left: auto; opacity: 0.7; }
+}
+
+.sleep-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.sleep-bad {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.sleep-detail {
+  padding: 10px 16px;
+  border-radius: 0 0 10px 10px;
+  font-size: 0.88rem;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+
+.sleep-detail-ok {
+  background: #f1f8f1;
+  color: #388e3c;
+}
+
+.sleep-detail-bad {
+  background: #fff5f5;
+  color: #c62828;
+}
+
 .calendar-card {
   border-radius: 12px;
 
