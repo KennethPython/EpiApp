@@ -59,7 +59,9 @@ The Android app (`frontend-android/`) is a Capacitor wrapper around the Angular 
 
 ### Build and run on a physical device
 
-**Requirements:** Node 18+, Android Studio, a physical Android 14+ device with USB debugging enabled
+> **Minimum Android version: Android 8.0 (API 26). Optimised for Android 14 (API 34) and above.**
+
+**Requirements:** Node 18+, Android Studio, a physical Android 8+ device with USB debugging enabled
 
 ```bash
 cd frontend-android
