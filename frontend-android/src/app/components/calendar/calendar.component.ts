@@ -94,7 +94,7 @@ export class CalendarComponent implements OnInit {
   exportYear = new Date().getFullYear();
   selectedExportMonths = new Set<string>();
 
-  readonly monthNames = [
+  readonly exportMonthOptions = [
     { num: 1, label: 'Jan' }, { num: 2, label: 'Feb' }, { num: 3, label: 'Mar' },
     { num: 4, label: 'Apr' }, { num: 5, label: 'May' }, { num: 6, label: 'Jun' },
     { num: 7, label: 'Jul' }, { num: 8, label: 'Aug' }, { num: 9, label: 'Sep' },

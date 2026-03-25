@@ -261,7 +261,7 @@
             </button>
           </div>
           <div class="month-grid">
-            @for (m of monthNames; track m.num) {
+            @for (m of exportMonthOptions; track m.num) {
               <button mat-stroked-button
                       [class.month-selected]="isExportMonthSelected(m.num)"
                       (click)="toggleExportMonth(m.num)">
