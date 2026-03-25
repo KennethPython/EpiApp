@@ -13,6 +13,7 @@ import { forkJoin } from 'rxjs';
 
 import { TriggerService } from '../../services/trigger.service';
 import { CustomTriggerOptionService } from '../../services/custom-trigger-option.service';
+import { HealthConnectService } from '../../services/health-connect.service';
 import { Trigger, TriggerType, TRIGGER_LABELS } from '../../models/trigger.model';
 
 export interface TriggerDialogData {
@@ -44,11 +45,13 @@ interface TriggerOption {
     MatNativeDateModule,
   ],
   templateUrl: './trigger-form-dialog.component.html',
+  styleUrls: ['./trigger-form-dialog.component.scss'],
 })
 export class TriggerFormDialogComponent implements OnInit {
   date = new Date();
   newCustomLabel = '';
   editMode = false;
+  sleepHours: number | null = null;
 
   editType: TriggerType = 'OTHER';
   editLabel = '';
@@ -72,6 +75,7 @@ export class TriggerFormDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<TriggerFormDialogComponent>,
     private triggerService: TriggerService,
     private customOptionService: CustomTriggerOptionService,
+    private healthConnect: HealthConnectService,
     @Optional() @Inject(MAT_DIALOG_DATA) private dialogData: TriggerDialogData | null
   ) {
     if (dialogData?.editTrigger) {
@@ -95,6 +99,14 @@ export class TriggerFormDialogComponent implements OnInit {
         isCustom: true,
         checked: false,
       }));
+    });
+    this.healthConnect.getSleepLastNight().then(sleep => {
+      if (!sleep) return;
+      this.sleepHours = sleep.totalHours;
+      if (sleep.belowThreshold) {
+        const sleepOption = this.options.find(o => o.key === 'SLEEP');
+        if (sleepOption) sleepOption.checked = true;
+      }
     });
   }
 

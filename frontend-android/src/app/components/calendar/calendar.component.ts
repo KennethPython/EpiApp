@@ -24,6 +24,7 @@ import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medic
 import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
+import { HealthConnectService } from '../../services/health-connect.service';
 
 export interface MedSlot {
   time: string;
@@ -173,11 +174,13 @@ export class CalendarComponent implements OnInit {
     private dialog: MatDialog,
     private authService: AuthService,
     private notificationService: NotificationService,
+    private healthConnect: HealthConnectService,
   ) {}
 
   ngOnInit(): void {
     this.loadColors();
     this.loadEvents();
+    this.healthConnect.requestPermissions();
   }
 
   private get todayMonthStr(): string {
