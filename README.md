@@ -2,7 +2,9 @@
 
 A calendar-based app for logging seizures, triggers, and medications. Built with **Angular 17 + Angular Material** (frontend) and **Spring Boot 3** (backend).
 
-**Live frontend:** https://epilappsy.netlify.app/
+> **This project is primarily built to be used as a native Android app.** The web version (Netlify) exists as a fallback, but the full feature set — including push notifications, Samsung Health Connect integration, and mobile-optimised navigation — is only available in the Android app.
+
+**Live frontend (web):** https://epilappsy.netlify.app/
 **Live backend:** https://epiapp-production.up.railway.app
 
 ---
@@ -11,7 +13,8 @@ A calendar-based app for logging seizures, triggers, and medications. Built with
 
 | Layer | Technology |
 |---|---|
-| Frontend | Angular 17, Angular Material |
+| Android app | Angular 17 + Capacitor |
+| Web frontend | Angular 17, Angular Material |
 | Backend | Spring Boot 3, Spring Security, Spring Data JPA |
 | Database (local) | H2 (in-memory) |
 | Database (production) | PostgreSQL |
@@ -25,12 +28,49 @@ A calendar-based app for logging seizures, triggers, and medications. Built with
 
 ```
 EpiApp/
-├── backend/      Spring Boot REST API
+├── backend/           Spring Boot REST API
 │   └── Dockerfile
-├── frontend/     Angular SPA
+├── frontend/          Angular SPA (web, Netlify)
+├── frontend-android/  Angular + Capacitor (Android app)
 ├── netlify.toml
 └── railway.toml
 ```
+
+---
+
+## Android App
+
+The Android app (`frontend-android/`) is a Capacitor wrapper around the Angular frontend, built specifically for mobile use. It connects to the same backend as the web version.
+
+### What the Android app can do
+
+- **Calendar view** — month and year overview of seizures, triggers, and medication doses
+- **Log a seizure** — date, time, duration, type, notes, and optional linked triggers
+- **Log triggers** — checkbox list with built-in and custom trigger options
+- **Sleep-based trigger suggestion** — reads last night's sleep from Samsung Health Connect; automatically pre-checks "Too little sleep" if sleep was under 6 hours
+- **Medication tracking** — add medications with name, dosage, and daily time slots; mark doses as taken per time slot
+- **Push notifications** — daily reminders at each medication time slot with inline action buttons: *Take now* (marks all meds for that slot as taken without opening the app) and *Cancel*
+- **Bottom navigation bar** — home button, central + FAB with speed dial (add seizure/trigger or medication), settings button
+- **Settings panel** — editable color coding for seizures, triggers, and medications
+- **Data export** — month picker to select which months to export; exports as `.csv` with seizures, triggers, and medication logs; *Export all* exports from the first recorded data point to today
+- **Samsung Health Connect** — reads sleep, steps, and heart rate data; requests permissions on first launch
+- **Android back button** — navigates back through the app; exits only from the root screen
+- **Full-screen layout** — calendar fills the screen edge to edge on mobile
+
+### Build and run on a physical device
+
+**Requirements:** Node 18+, Android Studio, a physical Android 14+ device with USB debugging enabled
+
+```bash
+cd frontend-android
+npm install
+npm run build -- --configuration production
+npx cap sync android
+```
+
+Then open `frontend-android/android/` in Android Studio and press **Run (▶)** with your device connected via USB.
+
+> The first time the app launches it will ask for Health Connect permissions. Open Samsung Health → Settings → Connected services → Health Connect to make sure sleep, steps, and heart rate are being synced.
 
 ---
 
