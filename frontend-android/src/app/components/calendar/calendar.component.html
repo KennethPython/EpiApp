@@ -107,6 +107,18 @@
 
           <div class="calendar-grid">
 
+            @if (loadError) {
+              <div style="grid-column: 1 / -1; padding: 24px; text-align: center;">
+                <p style="margin: 0 0 12px; color: #c62828; font-weight: 500;">
+                  Could not load calendar data.
+                </p>
+                <button mat-flat-button (click)="loadEvents()"
+                        style="background-color: var(--theme-primary-btn); color: #fff;">
+                  Retry
+                </button>
+              </div>
+            }
+
             @for (day of weekdays; track day) {
               <div class="weekday-header">{{ day }}</div>
             }
@@ -327,7 +339,10 @@
       </div>
     </div>
   }
-  <button mat-fab class="fab-center" (click)="speedDialOpen = !speedDialOpen">
+  <button mat-fab class="fab-center"
+          [style.--mdc-fab-container-color]="currentTheme.primaryBtn"
+          [style.color]="'white'"
+          (click)="speedDialOpen = !speedDialOpen">
     <mat-icon>{{ speedDialOpen ? 'close' : 'add' }}</mat-icon>
   </button>
   <button mat-icon-button class="nav-settings-btn" (click)="showSettings = !showSettings" aria-label="Settings">

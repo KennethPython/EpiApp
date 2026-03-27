@@ -23,6 +23,9 @@ import { DayDetailDialogComponent } from '../day-detail-dialog/day-detail-dialog
 import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medication-dialog.component';
 import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
 import { AuthService } from '../../services/auth.service';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { NotificationService } from '../../services/notification.service';
 
 export interface MedSlot {
@@ -177,8 +180,8 @@ export class CalendarComponent implements OnInit {
   sidebarMonthGrid: YearMonthGrid | null = null;
   sidebarMedLogs: MedicationLog[] = [];
 
-  colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50', sleepOk: '#2e7d32', sleepBad: '#c62828' };
-  sleepThresholdHours = 8;
+  loadError = false;
+  colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50' };
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly miniWeekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -215,11 +218,8 @@ export class CalendarComponent implements OnInit {
     if (window.innerWidth >= 681) this.showSettings = false;
   }
 
-  openColorPicker(type: 'seizure' | 'trigger' | 'med' | 'sleepOk' | 'sleepBad'): void {
-    const map = {
-      seizure: this.seizureInputEl, trigger: this.triggerInputEl, med: this.medInputEl,
-      sleepOk: this.sleepOkInputEl, sleepBad: this.sleepBadInputEl,
-    };
+  openColorPicker(type: 'seizure' | 'trigger' | 'med'): void {
+    const map = { seizure: this.seizureInputEl, trigger: this.triggerInputEl, med: this.medInputEl };
     map[type]?.nativeElement.click();
   }
 
@@ -227,8 +227,6 @@ export class CalendarComponent implements OnInit {
     try {
       const stored = localStorage.getItem(this.colorStorageKey);
       if (stored) this.colors = { ...this.colors, ...JSON.parse(stored) };
-      const threshold = localStorage.getItem(this.colorStorageKey + '_sleepThreshold');
-      if (threshold) this.sleepThresholdHours = parseInt(threshold, 10);
       const savedTheme = localStorage.getItem(this.colorStorageKey + '_theme');
       if (savedTheme) this.selectedThemeId = savedTheme;
     } catch {}
@@ -269,16 +267,20 @@ export class CalendarComponent implements OnInit {
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
       sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
-    }).subscribe(({ seizures, triggers, medications, logs, sidebarLogs }) => {
-      this.seizures = seizures;
-      this.triggers = triggers;
-      this.medications = medications;
-      this.medLogs = logs;
-      this.sidebarMedLogs = sidebarLogs;
-      this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
-      this.buildCalendar();
-      this.buildSidebarMonth();
-      this.notificationService.scheduleForMedications(medications);
+    }).subscribe({
+      next: ({ seizures, triggers, medications, logs, sidebarLogs }) => {
+        this.loadError = false;
+        this.seizures = seizures;
+        this.triggers = triggers;
+        this.medications = medications;
+        this.medLogs = logs;
+        this.sidebarMedLogs = sidebarLogs;
+        this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
+        this.buildCalendar();
+        this.buildSidebarMonth();
+        this.notificationService.scheduleForMedications(medications);
+      },
+      error: () => { this.loadError = true; },
     });
   }
 
@@ -287,13 +289,17 @@ export class CalendarComponent implements OnInit {
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
       sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
-    }).subscribe(({ medications, logs, sidebarLogs }) => {
-      this.medications = medications;
-      this.medLogs = logs;
-      this.sidebarMedLogs = sidebarLogs;
-      this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
-      this.buildCalendar();
-      this.buildSidebarMonth();
+    }).subscribe({
+      next: ({ medications, logs, sidebarLogs }) => {
+        this.loadError = false;
+        this.medications = medications;
+        this.medLogs = logs;
+        this.sidebarMedLogs = sidebarLogs;
+        this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
+        this.buildCalendar();
+        this.buildSidebarMonth();
+      },
+      error: () => { this.loadError = true; },
     });
   }
 
@@ -307,9 +313,13 @@ export class CalendarComponent implements OnInit {
       `${this.currentYear}-${String(i + 1).padStart(2, '0')}`
     );
     forkJoin(months.map(m => this.medicationLogService.getByMonth(m)))
-      .subscribe(logsPerMonth => {
-        this.yearMedLogs = logsPerMonth.flat();
-        this.buildYearMonths();
+      .subscribe({
+        next: logsPerMonth => {
+          this.loadError = false;
+          this.yearMedLogs = logsPerMonth.flat();
+          this.buildYearMonths();
+        },
+        error: () => { this.loadError = true; },
       });
   }
 
@@ -549,7 +559,7 @@ export class CalendarComponent implements OnInit {
     this.doExport(months);
   }
 
-  private doExport(months: string[]) {
+  private async doExport(months: string[]) {
     const inRange = (dateStr: string) => {
       const [year, month] = dateStr.substring(0, 7).split('-').map(Number);
       return months.includes(`${year}-${month}`);
@@ -577,12 +587,26 @@ export class CalendarComponent implements OnInit {
       lines.push(`Medication,${l.date},${l.scheduledTime},${esc(name)},,${status}`);
     }
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `epilappsy-export-${new Date().toISOString().substring(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const csv = lines.join('\n');
+    const filename = `epilappsy-export-${new Date().toISOString().substring(0, 10)}.csv`;
+
+    if (Capacitor.isNativePlatform()) {
+      await Filesystem.writeFile({
+        path: filename,
+        data: csv,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+      const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+      await Share.share({ title: filename, url: uri, dialogTitle: 'Save or share CSV' });
+    } else {
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   }
 }
