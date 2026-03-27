@@ -1,5 +1,7 @@
 package com.epiapp.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,6 +20,8 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final JwtFilter jwtFilter;
 
@@ -38,7 +42,17 @@ public class SecurityConfig {
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((req, res, e) -> res.sendError(401, "Unauthorized"))
+                .authenticationEntryPoint((req, res, e) -> {
+                    log.warn("Unauthenticated request: {} {}", req.getMethod(), req.getRequestURI());
+                    res.sendError(401, "Unauthorized");
+                })
+                .accessDeniedHandler((req, res, e) -> {
+                    var auth = req.getUserPrincipal();
+                    log.warn("Access denied: {} {} | principal={} | reason={}",
+                            req.getMethod(), req.getRequestURI(),
+                            auth != null ? auth.getName() : "null", e.getMessage());
+                    res.sendError(403, "Forbidden");
+                })
             );
         return http.build();
     }
