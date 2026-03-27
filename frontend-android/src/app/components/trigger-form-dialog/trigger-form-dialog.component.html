@@ -28,6 +28,14 @@
   }
 
   @if (!editMode) {
+    @if (sleepHours !== null) {
+      <div class="sleep-banner" [class.sleep-warning]="sleepHours < 6">
+        <mat-icon>bedtime</mat-icon>
+        <span>Last night's sleep: <strong>{{ sleepHours }}h</strong>
+          @if (sleepHours < 6) { — pre-checked as possible trigger }
+        </span>
+      </div>
+    }
     <p class="section-label">Select triggers that applied:</p>
 
     <div class="checkbox-list">

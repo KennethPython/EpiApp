@@ -1,0 +1,26 @@
+.sleep-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  margin-bottom: 12px;
+  font-size: 0.88rem;
+  color: rgba(0, 0, 0, 0.7);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.sleep-warning {
+  background: rgba(255, 152, 0, 0.12);
+  color: #e65100;
+
+  mat-icon {
+    color: #e65100;
+  }
+}

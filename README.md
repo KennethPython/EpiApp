@@ -2,7 +2,7 @@
 
 A calendar-based app for logging seizures, triggers, and medications. Built with **Angular 17 + Angular Material** (frontend) and **Spring Boot 3** (backend).
 
-> **This project is primarily built to be used as a native Android app.** The web version (Netlify) exists as a fallback, but the full feature set — including push notifications, Samsung Health Connect integration, and mobile-optimised navigation — is only available in the Android app.
+> **This project is primarily built to be used as a native Android app.** The web version (Netlify) exists as a fallback, but the full feature set — including push notifications, native file export, and mobile-optimised navigation — is only available in the Android app.
 
 **Live frontend (web):** https://epilappsy.netlify.app/
 **Live backend:** https://epiapp-production.up.railway.app
@@ -47,21 +47,19 @@ The Android app (`frontend-android/`) is a Capacitor wrapper around the Angular 
 - **Calendar view** — month and year overview of seizures, triggers, and medication doses
 - **Log a seizure** — date, time, duration, type, notes, and optional linked triggers
 - **Log triggers** — checkbox list with built-in and custom trigger options
-- **Sleep-based trigger suggestion** — reads last night's sleep from Samsung Health Connect; automatically pre-checks "Too little sleep" if sleep was under 6 hours
 - **Medication tracking** — add medications with name, dosage, and daily time slots; mark doses as taken per time slot
 - **Push notifications** — daily reminders at each medication time slot with inline action buttons: *Take now* (marks all meds for that slot as taken without opening the app) and *Cancel*
 - **Bottom navigation bar** — home button, central + FAB with speed dial (add seizure/trigger or medication), settings button
-- **Settings panel** — editable color coding for seizures, triggers, and medications
-- **Data export** — month picker to select which months to export; exports as `.csv` with seizures, triggers, and medication logs; *Export all* exports from the first recorded data point to today
-- **Samsung Health Connect** — reads sleep, steps, and heart rate data; requests permissions on first launch
+- **Color schemes** — three selectable themes in the settings panel: *Dark* (purple), *Clinical Blue*, and *Soft* (sage green); chosen theme persists across sessions
+- **Custom event colors** — editable color coding for seizures, triggers, and medication dots
+- **Data export** — month picker to select which months to export; exports as `.csv` with seizures, triggers, and medication logs; *Export all* exports from the first recorded data point to today; uses the native Android share sheet so the file can be saved, emailed, or sent directly
+- **Persistent login** — JWT token is valid for 3 months; the user does not need to log in again after closing the app; logout button available in the settings panel
 - **Android back button** — navigates back through the app; exits only from the root screen
 - **Full-screen layout** — calendar fills the screen edge to edge on mobile
 
 ### Build and run on a physical device
 
-> **Minimum Android version: Android 8.0 (API 26). Optimised for Android 14 (API 34) and above.**
-
-**Requirements:** Node 18+, Android Studio, a physical Android 8+ device with USB debugging enabled
+**Requirements:** Node 18+, Android Studio, a physical Android 14+ device with USB debugging enabled
 
 ```bash
 cd frontend-android
@@ -71,8 +69,6 @@ npx cap sync android
 ```
 
 Then open `frontend-android/android/` in Android Studio and press **Run (▶)** with your device connected via USB.
-
-> The first time the app launches it will ask for Health Connect permissions. Open Samsung Health → Settings → Connected services → Health Connect to make sure sleep, steps, and heart rate are being synced.
 
 ---
 
@@ -293,9 +289,12 @@ For custom triggers use `"type": "OTHER"` and include `"label": "My trigger"`. `
 ## Data Flow
 
 ```
-App loads → /login (landing page)
-  → Login succeeds → /calendar (userId stored in localStorage)
-  → Register → /register → on success → /calendar
+App loads → checks localStorage for JWT token
+  → Token present and valid → /calendar (no login required)
+  → No token → /login
+    → Login succeeds → JWT stored in localStorage (valid 3 months) → /calendar
+    → Register → /register → on success → JWT stored → /calendar
+  → Token expired → backend returns 401 → auto-logout → /login
 
 User clicks "+"
   → AddEventDialog (choose type)
@@ -320,6 +319,8 @@ Medication FAB
 ## Authentication
 
 All API endpoints except `/api/auth/register` and `/api/auth/login` require a valid JWT in the `Authorization: Bearer` header. The frontend attaches the token automatically via an HTTP interceptor. Each user's data (seizures, triggers, medications, logs, custom trigger options) is isolated — only the authenticated user's own records are accessible.
+
+Tokens are valid for **3 months** (`jwt.expiration-ms=7776000000`). When a token expires the backend returns 401, the frontend clears localStorage, and the user is redirected to `/login`. The user does not need to log in again until the token expires.
 
 Railway environment variable required for production:
 

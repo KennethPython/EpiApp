@@ -1,11 +1,12 @@
 import { Component, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
+import { ConfirmDeleteDialogComponent } from '../confirm-delete-dialog/confirm-delete-dialog.component';
 
 import { MedicationService } from '../../services/medication.service';
 import { Medication } from '../../models/medication.model';
@@ -33,7 +34,8 @@ export class EditMedicationDialogComponent {
   constructor(
     private dialogRef: MatDialogRef<EditMedicationDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public medication: Medication,
-    private medicationService: MedicationService
+    private medicationService: MedicationService,
+    private dialog: MatDialog
   ) {
     this.name = medication.name;
     this.dosage = medication.dosage;
@@ -66,7 +68,17 @@ export class EditMedicationDialogComponent {
   }
 
   delete(): void {
-    this.medicationService.delete(this.medication.id!).subscribe(() => this.dialogRef.close(true));
+    const timeStr = this.medication.times.join(', ');
+    const ref = this.dialog.open(ConfirmDeleteDialogComponent, {
+      data: {
+        message: `Are you sure you want to delete ${this.medication.name} ${this.medication.dosage} at ${timeStr}?`,
+      },
+    });
+    ref.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        this.medicationService.delete(this.medication.id!).subscribe(() => this.dialogRef.close(true));
+      }
+    });
   }
 
   cancel(): void {

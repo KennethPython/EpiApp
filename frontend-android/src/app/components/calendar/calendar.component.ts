@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,6 +23,10 @@ import { DayDetailDialogComponent } from '../day-detail-dialog/day-detail-dialog
 import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medication-dialog.component';
 import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
 import { AuthService } from '../../services/auth.service';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { NotificationService } from '../../services/notification.service';
 
 export interface MedSlot {
   time: string;
@@ -56,6 +61,38 @@ export interface YearDayCell {
   triggers: Trigger[];
 }
 
+export interface AppTheme {
+  id: string; label: string;
+  primary: string; primaryBtn: string; secondary: string;
+  border: string; cardBg: string; accent: string;
+  pageBg: string; navBg: string;
+  todayBg: string; todayBorder: string; todayText: string;
+}
+
+export const THEMES: AppTheme[] = [
+  {
+    id: 'dark', label: 'Dark',
+    primary: '#3C2580', primaryBtn: '#6A4FC0', secondary: '#9F85E0',
+    border: '#D5C8F7', cardBg: '#EEEAFC', accent: '#F6A623',
+    pageBg: '#FAF9FF', navBg: '#3C2580',
+    todayBg: 'rgba(106,79,192,0.08)', todayBorder: 'rgba(106,79,192,0.35)', todayText: '#6A4FC0',
+  },
+  {
+    id: 'clinical', label: 'Clinical Blue',
+    primary: '#0E3A6E', primaryBtn: '#1A6FC4', secondary: '#4DA3E8',
+    border: '#BDD9F4', cardBg: '#E8F3FC', accent: '#1DAF7D',
+    pageBg: '#F4F7FB', navBg: '#0E3A6E',
+    todayBg: 'rgba(26,111,196,0.08)', todayBorder: 'rgba(26,111,196,0.35)', todayText: '#1A6FC4',
+  },
+  {
+    id: 'soft', label: 'Soft',
+    primary: '#2D5C40', primaryBtn: '#4A8C63', secondary: '#7DB896',
+    border: '#BDD9C8', cardBg: '#E8F4ED', accent: '#C9A96E',
+    pageBg: '#F6FAF7', navBg: '#2D5C40',
+    todayBg: 'rgba(74,140,99,0.08)', todayBorder: 'rgba(74,140,99,0.35)', todayText: '#4A8C63',
+  },
+];
+
 export interface YearMonthGrid {
   month: number;
   monthName: string;
@@ -73,6 +110,7 @@ export interface YearMonthGrid {
     MatButtonToggleModule,
     MatTabsModule,
     MedicationOverviewComponent,
+    RouterLink,
   ],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.scss']
@@ -83,8 +121,48 @@ export class CalendarComponent implements OnInit {
   @ViewChild('triggerInput') triggerInputEl!: ElementRef<HTMLInputElement>;
   @ViewChild('medInput') medInputEl!: ElementRef<HTMLInputElement>;
 
+  readonly themes = THEMES;
+  selectedThemeId = 'clinical';
+
+  get currentTheme(): AppTheme {
+    return THEMES.find(t => t.id === this.selectedThemeId) ?? THEMES[1];
+  }
+
+  selectTheme(id: string): void {
+    this.selectedThemeId = id;
+    this.applyTheme();
+    localStorage.setItem(this.colorStorageKey + '_theme', id);
+  }
+
+  private applyTheme(): void {
+    const t = this.currentTheme;
+    const r = document.documentElement;
+    r.style.setProperty('--theme-primary',      t.primary);
+    r.style.setProperty('--theme-primary-btn',  t.primaryBtn);
+    r.style.setProperty('--theme-secondary',    t.secondary);
+    r.style.setProperty('--theme-border',       t.border);
+    r.style.setProperty('--theme-card-bg',      t.cardBg);
+    r.style.setProperty('--theme-accent',       t.accent);
+    r.style.setProperty('--theme-page-bg',      t.pageBg);
+    r.style.setProperty('--theme-nav-bg',       t.navBg);
+    r.style.setProperty('--theme-today-bg',     t.todayBg);
+    r.style.setProperty('--theme-today-border', t.todayBorder);
+    r.style.setProperty('--theme-today-text',   t.todayText);
+  }
+
   view: 'month' | 'year' = 'month';
   showSettings = false;
+  speedDialOpen = false;
+  showExport = false;
+  exportYear = new Date().getFullYear();
+  selectedExportMonths = new Set<string>();
+
+  readonly exportMonthOptions = [
+    { num: 1, label: 'Jan' }, { num: 2, label: 'Feb' }, { num: 3, label: 'Mar' },
+    { num: 4, label: 'Apr' }, { num: 5, label: 'May' }, { num: 6, label: 'Jun' },
+    { num: 7, label: 'Jul' }, { num: 8, label: 'Aug' }, { num: 9, label: 'Sep' },
+    { num: 10, label: 'Oct' }, { num: 11, label: 'Nov' }, { num: 12, label: 'Dec' },
+  ];
 
   currentYear = new Date().getFullYear();
   currentMonth = new Date().getMonth();
@@ -102,6 +180,7 @@ export class CalendarComponent implements OnInit {
   sidebarMonthGrid: YearMonthGrid | null = null;
   sidebarMedLogs: MedicationLog[] = [];
 
+  loadError = false;
   colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50' };
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -148,7 +227,10 @@ export class CalendarComponent implements OnInit {
     try {
       const stored = localStorage.getItem(this.colorStorageKey);
       if (stored) this.colors = { ...this.colors, ...JSON.parse(stored) };
+      const savedTheme = localStorage.getItem(this.colorStorageKey + '_theme');
+      if (savedTheme) this.selectedThemeId = savedTheme;
     } catch {}
+    this.applyTheme();
   }
 
   constructor(
@@ -157,8 +239,16 @@ export class CalendarComponent implements OnInit {
     private medicationService: MedicationService,
     private medicationLogService: MedicationLogService,
     private dialog: MatDialog,
-    private authService: AuthService
+    private authService: AuthService,
+    private notificationService: NotificationService,
+    private router: Router,
   ) {}
+
+  logout(): void {
+    this.authService.logout();
+    this.showSettings = false;
+    this.router.navigate(['/login']);
+  }
 
   ngOnInit(): void {
     this.loadColors();
@@ -177,15 +267,20 @@ export class CalendarComponent implements OnInit {
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
       sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
-    }).subscribe(({ seizures, triggers, medications, logs, sidebarLogs }) => {
-      this.seizures = seizures;
-      this.triggers = triggers;
-      this.medications = medications;
-      this.medLogs = logs;
-      this.sidebarMedLogs = sidebarLogs;
-      this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
-      this.buildCalendar();
-      this.buildSidebarMonth();
+    }).subscribe({
+      next: ({ seizures, triggers, medications, logs, sidebarLogs }) => {
+        this.loadError = false;
+        this.seizures = seizures;
+        this.triggers = triggers;
+        this.medications = medications;
+        this.medLogs = logs;
+        this.sidebarMedLogs = sidebarLogs;
+        this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
+        this.buildCalendar();
+        this.buildSidebarMonth();
+        this.notificationService.scheduleForMedications(medications);
+      },
+      error: () => { this.loadError = true; },
     });
   }
 
@@ -194,13 +289,17 @@ export class CalendarComponent implements OnInit {
       medications: this.medicationService.getAll(),
       logs: this.medicationLogService.getByMonth(this.yearMonthStr()),
       sidebarLogs: this.medicationLogService.getByMonth(this.todayMonthStr),
-    }).subscribe(({ medications, logs, sidebarLogs }) => {
-      this.medications = medications;
-      this.medLogs = logs;
-      this.sidebarMedLogs = sidebarLogs;
-      this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
-      this.buildCalendar();
-      this.buildSidebarMonth();
+    }).subscribe({
+      next: ({ medications, logs, sidebarLogs }) => {
+        this.loadError = false;
+        this.medications = medications;
+        this.medLogs = logs;
+        this.sidebarMedLogs = sidebarLogs;
+        this.medTimes = [...new Set(medications.flatMap(m => m.times))].sort();
+        this.buildCalendar();
+        this.buildSidebarMonth();
+      },
+      error: () => { this.loadError = true; },
     });
   }
 
@@ -214,9 +313,13 @@ export class CalendarComponent implements OnInit {
       `${this.currentYear}-${String(i + 1).padStart(2, '0')}`
     );
     forkJoin(months.map(m => this.medicationLogService.getByMonth(m)))
-      .subscribe(logsPerMonth => {
-        this.yearMedLogs = logsPerMonth.flat();
-        this.buildYearMonths();
+      .subscribe({
+        next: logsPerMonth => {
+          this.loadError = false;
+          this.yearMedLogs = logsPerMonth.flat();
+          this.buildYearMonths();
+        },
+        error: () => { this.loadError = true; },
       });
   }
 
@@ -410,5 +513,100 @@ export class CalendarComponent implements OnInit {
   isToday(date: Date | null): boolean {
     if (!date) return false;
     return this.localDateString(date) === this.localDateString(new Date());
+  }
+
+  toggleExportMonth(month: number) {
+    const key = `${this.exportYear}-${month}`;
+    if (this.selectedExportMonths.has(key)) {
+      this.selectedExportMonths.delete(key);
+    } else {
+      this.selectedExportMonths.add(key);
+    }
+  }
+
+  isExportMonthSelected(month: number): boolean {
+    return this.selectedExportMonths.has(`${this.exportYear}-${month}`);
+  }
+
+  exportSelected() {
+    const months = [...this.selectedExportMonths];
+    if (months.length === 0) return;
+    this.doExport(months);
+  }
+
+  exportAll() {
+    const allDates = [
+      ...this.seizures.map(s => s.dateTime.substring(0, 10)),
+      ...this.triggers.map(t => t.date),
+      ...this.medLogs.map(l => l.date),
+    ].filter(Boolean).sort();
+
+    if (allDates.length === 0) return;
+
+    const [startYear, startMonth] = allDates[0].split('-').map(Number);
+    const today = new Date();
+    const endYear = today.getFullYear();
+    const endMonth = today.getMonth() + 1;
+
+    const months: string[] = [];
+    let y = startYear, m = startMonth;
+    while (y < endYear || (y === endYear && m <= endMonth)) {
+      months.push(`${y}-${m}`);
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+
+    this.doExport(months);
+  }
+
+  private async doExport(months: string[]) {
+    const inRange = (dateStr: string) => {
+      const [year, month] = dateStr.substring(0, 7).split('-').map(Number);
+      return months.includes(`${year}-${month}`);
+    };
+
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+
+    const lines: string[] = ['Type,Date,Time,Detail,Duration (min),Notes'];
+
+    for (const s of this.seizures.filter(s => inRange(s.dateTime))) {
+      const [date, time] = s.dateTime.split('T');
+      const detail = s.type ? SEIZURE_TYPE_LABELS[s.type] : '';
+      lines.push(`Seizure,${date},${time ?? ''},${esc(detail)},${s.durationMinutes ?? ''},${esc(s.notes ?? '')}`);
+    }
+
+    for (const t of this.triggers.filter(t => inRange(t.date))) {
+      const detail = t.type === 'OTHER' ? (t.label ?? '') : TRIGGER_LABELS[t.type];
+      lines.push(`Trigger,${t.date},,${esc(detail)},,`);
+    }
+
+    for (const l of this.medLogs.filter(l => inRange(l.date))) {
+      const med = this.medications.find(m => m.id === l.medicationId);
+      const name = med ? `${med.name} ${med.dosage}` : `Med #${l.medicationId}`;
+      const status = l.takenAt ? 'Taken' : 'Missed';
+      lines.push(`Medication,${l.date},${l.scheduledTime},${esc(name)},,${status}`);
+    }
+
+    const csv = lines.join('\n');
+    const filename = `epilappsy-export-${new Date().toISOString().substring(0, 10)}.csv`;
+
+    if (Capacitor.isNativePlatform()) {
+      await Filesystem.writeFile({
+        path: filename,
+        data: csv,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+      const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+      await Share.share({ title: filename, url: uri, dialogTitle: 'Save or share CSV' });
+    } else {
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   }
 }
