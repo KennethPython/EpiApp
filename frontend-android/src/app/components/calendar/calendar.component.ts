@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,7 +24,6 @@ import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medic
 import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
-import { HealthConnectService } from '../../services/health-connect.service';
 
 export interface MedSlot {
   time: string;
@@ -59,6 +58,38 @@ export interface YearDayCell {
   triggers: Trigger[];
 }
 
+export interface AppTheme {
+  id: string; label: string;
+  primary: string; primaryBtn: string; secondary: string;
+  border: string; cardBg: string; accent: string;
+  pageBg: string; navBg: string;
+  todayBg: string; todayBorder: string; todayText: string;
+}
+
+export const THEMES: AppTheme[] = [
+  {
+    id: 'dark', label: 'Dark',
+    primary: '#3C2580', primaryBtn: '#6A4FC0', secondary: '#9F85E0',
+    border: '#D5C8F7', cardBg: '#EEEAFC', accent: '#F6A623',
+    pageBg: '#FAF9FF', navBg: '#3C2580',
+    todayBg: 'rgba(106,79,192,0.08)', todayBorder: 'rgba(106,79,192,0.35)', todayText: '#6A4FC0',
+  },
+  {
+    id: 'clinical', label: 'Clinical Blue',
+    primary: '#0E3A6E', primaryBtn: '#1A6FC4', secondary: '#4DA3E8',
+    border: '#BDD9F4', cardBg: '#E8F3FC', accent: '#1DAF7D',
+    pageBg: '#F4F7FB', navBg: '#0E3A6E',
+    todayBg: 'rgba(26,111,196,0.08)', todayBorder: 'rgba(26,111,196,0.35)', todayText: '#1A6FC4',
+  },
+  {
+    id: 'soft', label: 'Soft',
+    primary: '#2D5C40', primaryBtn: '#4A8C63', secondary: '#7DB896',
+    border: '#BDD9C8', cardBg: '#E8F4ED', accent: '#C9A96E',
+    pageBg: '#F6FAF7', navBg: '#2D5C40',
+    todayBg: 'rgba(74,140,99,0.08)', todayBorder: 'rgba(74,140,99,0.35)', todayText: '#4A8C63',
+  },
+];
+
 export interface YearMonthGrid {
   month: number;
   monthName: string;
@@ -86,17 +117,40 @@ export class CalendarComponent implements OnInit {
   @ViewChild('seizureInput') seizureInputEl!: ElementRef<HTMLInputElement>;
   @ViewChild('triggerInput') triggerInputEl!: ElementRef<HTMLInputElement>;
   @ViewChild('medInput') medInputEl!: ElementRef<HTMLInputElement>;
-  @ViewChild('sleepOkInput') sleepOkInputEl!: ElementRef<HTMLInputElement>;
-  @ViewChild('sleepBadInput') sleepBadInputEl!: ElementRef<HTMLInputElement>;
+
+  readonly themes = THEMES;
+  selectedThemeId = 'clinical';
+
+  get currentTheme(): AppTheme {
+    return THEMES.find(t => t.id === this.selectedThemeId) ?? THEMES[1];
+  }
+
+  selectTheme(id: string): void {
+    this.selectedThemeId = id;
+    this.applyTheme();
+    localStorage.setItem(this.colorStorageKey + '_theme', id);
+  }
+
+  private applyTheme(): void {
+    const t = this.currentTheme;
+    const r = document.documentElement;
+    r.style.setProperty('--theme-primary',      t.primary);
+    r.style.setProperty('--theme-primary-btn',  t.primaryBtn);
+    r.style.setProperty('--theme-secondary',    t.secondary);
+    r.style.setProperty('--theme-border',       t.border);
+    r.style.setProperty('--theme-card-bg',      t.cardBg);
+    r.style.setProperty('--theme-accent',       t.accent);
+    r.style.setProperty('--theme-page-bg',      t.pageBg);
+    r.style.setProperty('--theme-nav-bg',       t.navBg);
+    r.style.setProperty('--theme-today-bg',     t.todayBg);
+    r.style.setProperty('--theme-today-border', t.todayBorder);
+    r.style.setProperty('--theme-today-text',   t.todayText);
+  }
 
   view: 'month' | 'year' = 'month';
   showSettings = false;
   speedDialOpen = false;
   showExport = false;
-  sleepHours: number | null = null;
-  sleepBlockOpen = false;
-  healthPermissionStatus: 'unknown' | 'granted' | 'denied' | 'unavailable' = 'unknown';
-  sleepDebugText: string | null = null;
   exportYear = new Date().getFullYear();
   selectedExportMonths = new Set<string>();
 
@@ -151,66 +205,9 @@ export class CalendarComponent implements OnInit {
     return `epiapp_colors_${this.authService.getUsername() ?? 'default'}`;
   }
 
-  updateColor(key: 'seizure' | 'trigger' | 'med' | 'sleepOk' | 'sleepBad', event: Event): void {
+  updateColor(key: 'seizure' | 'trigger' | 'med', event: Event): void {
     this.colors[key] = (event.target as HTMLInputElement).value;
     localStorage.setItem(this.colorStorageKey, JSON.stringify(this.colors));
-  }
-
-  async loadSleepData(): Promise<void> {
-    const available = await this.healthConnect.isAvailable();
-    if (!available) { this.healthPermissionStatus = 'unavailable'; return; }
-    const result = await this.healthConnect.requestPermissions();
-    this.healthPermissionStatus = result.granted ? 'granted' : 'denied';
-    if (!result.granted) return;
-    const sleep = await this.healthConnect.getSleepLastNight();
-    if (sleep && sleep.totalHours > 0) this.sleepHours = sleep.totalHours;
-  }
-
-  async grantHealthPermissions(): Promise<void> {
-    const available = await this.healthConnect.isAvailable();
-    if (!available) { this.healthPermissionStatus = 'unavailable'; return; }
-    const result = await this.healthConnect.requestPermissions();
-    this.healthPermissionStatus = result.granted ? 'granted' : 'denied';
-    if (!result.granted) {
-      this.sleepDebugText = result.error ? 'Error: ' + result.error : null;
-    }
-  }
-
-  openHealthConnectSettings(): void {
-    this.healthConnect.openHealthConnectSettings();
-  }
-
-  async recheckPermission(): Promise<void> {
-    const result = await this.healthConnect.requestPermissions();
-    this.healthPermissionStatus = result.granted ? 'granted' : 'denied';
-    if (result.granted) this.sleepDebugText = null;
-  }
-
-  async syncSleepData(): Promise<void> {
-    this.sleepDebugText = 'Fetching...';
-    const sleep = await this.healthConnect.getSleepLastNight();
-    if (!sleep) {
-      this.sleepDebugText = 'Error: could not read sleep data (check permissions)';
-      return;
-    }
-    if (sleep.sessionCount === 0) {
-      this.sleepDebugText = 'No sleep sessions found in the last 2 days';
-      return;
-    }
-    this.sleepHours = sleep.totalHours;
-    const sessions = JSON.parse(sleep.sessions) as any[];
-    const lines = sessions.map((s: any) =>
-      `• ${s.startTime.substring(0, 16)} → ${s.endTime.substring(11, 16)} (${s.durationMinutes} min)`
-    );
-    this.sleepDebugText = `Total: ${sleep.totalHours}h (${sleep.totalMinutes} min)\n` + lines.join('\n');
-  }
-
-  updateSleepThreshold(event: Event): void {
-    const val = parseInt((event.target as HTMLInputElement).value, 10);
-    if (!isNaN(val) && val > 0) {
-      this.sleepThresholdHours = val;
-      localStorage.setItem(this.colorStorageKey + '_sleepThreshold', String(val));
-    }
   }
 
   @HostListener('window:resize')
@@ -232,7 +229,10 @@ export class CalendarComponent implements OnInit {
       if (stored) this.colors = { ...this.colors, ...JSON.parse(stored) };
       const threshold = localStorage.getItem(this.colorStorageKey + '_sleepThreshold');
       if (threshold) this.sleepThresholdHours = parseInt(threshold, 10);
+      const savedTheme = localStorage.getItem(this.colorStorageKey + '_theme');
+      if (savedTheme) this.selectedThemeId = savedTheme;
     } catch {}
+    this.applyTheme();
   }
 
   constructor(
@@ -243,13 +243,18 @@ export class CalendarComponent implements OnInit {
     private dialog: MatDialog,
     private authService: AuthService,
     private notificationService: NotificationService,
-    private healthConnect: HealthConnectService,
+    private router: Router,
   ) {}
+
+  logout(): void {
+    this.authService.logout();
+    this.showSettings = false;
+    this.router.navigate(['/login']);
+  }
 
   ngOnInit(): void {
     this.loadColors();
     this.loadEvents();
-    this.loadSleepData();
   }
 
   private get todayMonthStr(): string {
