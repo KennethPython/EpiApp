@@ -13,13 +13,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 || error.status === 403) {
+      if (error.status === 401) {
         authService.logout();
         dialog.closeAll();
         router.navigate(['/login']);
         return throwError(() => error);
       }
-      const shouldShow = error.status === 0 || error.status === 404 || error.status >= 500;
+      const shouldShow = error.status === 0 || error.status === 403 || error.status === 404 || error.status >= 500;
       if (shouldShow && dialog.openDialogs.length === 0) {
         dialog.open(ErrorDialogComponent, {
           panelClass: 'error-dialog-panel',
