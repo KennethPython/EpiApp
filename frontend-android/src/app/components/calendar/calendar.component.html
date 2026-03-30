@@ -79,6 +79,47 @@
   <div class="main-content">
 
 
+    <!-- Summary cards -->
+    <div class="summary-cards">
+
+      <div class="summary-card">
+        <div class="summary-value"
+             [style.color]="daysSinceLastSeizure === 0 ? colors.seizure : 'var(--theme-primary-btn)'">
+          {{ daysSinceLastSeizure === null ? '—' : daysSinceLastSeizure }}
+        </div>
+        <div class="summary-label">
+          {{ daysSinceLastSeizure === null ? 'no seizures logged' : (daysSinceLastSeizure === 1 ? 'day seizure-free' : 'days seizure-free') }}
+        </div>
+      </div>
+
+      <div class="summary-card">
+        @if (todayMedStatus.total === 0) {
+          <div class="summary-value" style="color: var(--theme-primary-btn)">—</div>
+          <div class="summary-label">no meds scheduled</div>
+        } @else if (todayMedStatus.taken === todayMedStatus.total) {
+          <div class="summary-value" [style.color]="colors.med">✓</div>
+          <div class="summary-label">all meds taken today</div>
+        } @else {
+          <div class="summary-value" [style.color]="colors.trigger">
+            {{ todayMedStatus.total - todayMedStatus.taken }}
+          </div>
+          <div class="summary-label">
+            {{ (todayMedStatus.total - todayMedStatus.taken) === 1 ? 'dose' : 'doses' }} remaining today
+          </div>
+        }
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-value" [style.color]="'var(--theme-primary-btn)'">
+          {{ daysAllMedsTakenThisMonth }}
+        </div>
+        <div class="summary-label">
+          {{ daysAllMedsTakenThisMonth === 1 ? 'day' : 'days' }} all meds taken this month
+        </div>
+      </div>
+
+    </div>
+
     <mat-card class="calendar-card">
       <mat-card-content>
 
@@ -87,7 +128,9 @@
           <div class="view-toggle">
             <mat-button-toggle-group [value]="view" (change)="setView($event.value)">
               <mat-button-toggle value="month">Month</mat-button-toggle>
+              <mat-button-toggle value="week">Week</mat-button-toggle>
               <mat-button-toggle value="year">Year</mat-button-toggle>
+              <mat-button-toggle value="sleep">Sleep</mat-button-toggle>
             </mat-button-toggle-group>
           </div>
         </div>
@@ -163,6 +206,70 @@
 
         }
 
+        <!-- WEEK VIEW -->
+        @if (view === 'week') {
+
+          <div class="month-nav">
+            <button mat-icon-button (click)="prevWeek()" aria-label="Previous week">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <h2 class="month-label">{{ weekLabel }}</h2>
+            <button mat-icon-button (click)="nextWeek()" aria-label="Next week">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+
+          @if (loadError) {
+            <div style="padding: 24px; text-align: center;">
+              <p style="margin: 0 0 12px; color: #c62828; font-weight: 500;">Could not load calendar data.</p>
+              <button mat-flat-button (click)="loadEvents()"
+                      style="background-color: var(--theme-primary-btn); color: #fff;">Retry</button>
+            </div>
+          }
+
+          <div class="week-list">
+            @for (day of weekDays; track day.date) {
+              <div class="week-day-row"
+                   [class.today]="isToday(day.date)"
+                   (click)="openDayDetail(day)">
+                <div class="week-day-header">
+                  <span class="week-day-name">{{ weekdays[day.date!.getDay()] }}</span>
+                  <span class="week-day-num" [class.today-num]="isToday(day.date)">
+                    {{ day.date!.getDate() }}
+                  </span>
+                </div>
+                <div class="week-day-events">
+                  @if (day.visibleEvents.length === 0 && day.medSlots.length === 0) {
+                    <span class="week-no-events">—</span>
+                  }
+                  @for (e of day.visibleEvents; track e.id) {
+                    <div class="event-bar"
+                         [style.background-color]="e.kind === 'seizure' ? colors.seizure : colors.trigger"
+                         [matTooltip]="e.label">
+                      {{ e.label }}
+                    </div>
+                  }
+                  @if (day.hiddenCount > 0) {
+                    <div class="event-overflow">+{{ day.hiddenCount }} more</div>
+                  }
+                  @if (day.medSlots.length > 0) {
+                    <div class="med-slots">
+                      @for (slot of day.medSlots; track slot.time) {
+                        <div class="med-dot"
+                             [style.border-color]="colors.med"
+                             [style.background-color]="slot.taken ? colors.med : 'transparent'"
+                             [matTooltip]="slot.time + (slot.taken ? ' ✓' : '')">
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+        }
+
         <!-- YEAR VIEW -->
         @if (view === 'year') {
 
@@ -214,10 +321,71 @@
 
         }
 
+        <!-- SLEEP VIEW -->
+        @if (view === 'sleep') {
+
+          <div class="month-nav">
+            <button mat-icon-button (click)="prevMonth(); loadSleepData()" aria-label="Previous month">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <h2 class="month-label">{{ monthLabel }}</h2>
+            <button mat-icon-button (click)="nextMonth(); loadSleepData()" aria-label="Next month">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+
+          @if (!healthAvailable) {
+            <div class="sleep-unavailable">
+              <mat-icon>bedtime_off</mat-icon>
+              <p>Samsung Health is not available on this device.</p>
+            </div>
+          } @else if (!sleepPermissionGranted) {
+            <div class="sleep-permission-prompt">
+              <mat-icon>bedtime</mat-icon>
+              <p>Connect to Samsung Health to see your sleep duration per day.</p>
+              <button mat-raised-button (click)="requestSleepPermission()"
+                      style="background-color: var(--theme-primary-btn); color: #fff; margin-top: 12px;">
+                Grant permission
+              </button>
+            </div>
+          } @else if (sleepLoading) {
+            <div class="sleep-unavailable">
+              <p>Loading sleep data…</p>
+            </div>
+          } @else {
+            <div class="sleep-legend">
+              <span class="sleep-legend-dot sleep-green"></span><span>≥ 8 h</span>
+              <span class="sleep-legend-dot sleep-red" style="margin-left:12px"></span><span>< 8 h</span>
+            </div>
+
+            <div class="calendar-grid">
+              @for (day of weekdays; track day) {
+                <div class="weekday-header">{{ day }}</div>
+              }
+              @for (week of weeks; track $index) {
+                @for (day of week; track $index) {
+                  <div class="sleep-day-cell" [class.empty]="!day.date" [class.today]="isToday(day.date)">
+                    @if (day.date) {
+                      <span class="day-number">{{ day.date.getDate() }}</span>
+                      @if (sleepForDate(day.date); as s) {
+                        <span class="sleep-hours"
+                              [style.color]="s.belowThreshold ? '#e53935' : '#43a047'">
+                          {{ s.totalHours.toFixed(1) }}h
+                        </span>
+                      }
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+
+        }
+
       </mat-card-content>
     </mat-card>
 
-    @if (view === 'month') {
+    @if (view === 'month' || view === 'week') {
       <app-medication-overview (medicationsTaken)="loadMedData()"></app-medication-overview>
     }
   </div>
@@ -327,13 +495,19 @@
     <div class="speed-dial-actions">
       <div class="speed-dial-item">
         <span class="speed-dial-label">Add seizure / trigger</span>
-        <button mat-mini-fab color="primary" (click)="openAddDialog(); speedDialOpen = false">
+        <button mat-mini-fab
+                [style.--mdc-fab-container-color]="currentTheme.primaryBtn"
+                [style.color]="'white'"
+                (click)="openAddDialog(); speedDialOpen = false">
           <mat-icon>add</mat-icon>
         </button>
       </div>
       <div class="speed-dial-item">
         <span class="speed-dial-label">Add medication</span>
-        <button mat-mini-fab color="accent" (click)="openAddMedicationDialog(); speedDialOpen = false">
+        <button mat-mini-fab
+                [style.--mdc-fab-container-color]="currentTheme.accent"
+                [style.color]="'white'"
+                (click)="openAddMedicationDialog(); speedDialOpen = false">
           <mat-icon>medication</mat-icon>
         </button>
       </div>
