@@ -3,13 +3,17 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--theme-page-bg, #E3EDF7);
 }
 
 .login-card {
   width: 100%;
   max-width: 380px;
   padding: 16px;
+  background: var(--theme-card-bg, #E8F3FC) !important;
+  border: 1px solid var(--theme-border, #BDD9F4) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
 }
 
 mat-card-header {
@@ -18,7 +22,13 @@ mat-card-header {
 
 mat-card-title {
   font-size: 1.8rem !important;
-  font-weight: 600;
+  font-weight: 700 !important;
+  color: var(--theme-primary, #0E3A6E) !important;
+}
+
+mat-card-subtitle {
+  color: var(--theme-primary-btn, #1A6FC4) !important;
+  opacity: 0.8;
 }
 
 .full-width {
@@ -30,6 +40,16 @@ mat-card-title {
   flex-direction: column;
   gap: 10px;
   padding: 0 16px 16px;
+}
+
+.primary-btn {
+  background-color: var(--theme-primary-btn, #1A6FC4) !important;
+  color: #fff !important;
+}
+
+.outline-btn {
+  border-color: var(--theme-primary-btn, #1A6FC4) !important;
+  color: var(--theme-primary-btn, #1A6FC4) !important;
 }
 
 .error {

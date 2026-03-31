@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, ReactiveFormsModule, FormBuilder, FormGroup, Validators, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -20,6 +20,12 @@ function passwordStrengthValidator(control: AbstractControl): ValidationErrors |
   return null;
 }
 
+const THEME_VARS: Record<string, Record<string, string>> = {
+  dark:     { primary: '#3C2580', btn: '#6A4FC0', pageBg: '#EDE8FA', cardBg: '#EEEAFC', border: '#D5C8F7' },
+  clinical: { primary: '#0E3A6E', btn: '#1A6FC4', pageBg: '#E3EDF7', cardBg: '#E8F3FC', border: '#BDD9F4' },
+  soft:     { primary: '#2D5C40', btn: '#4A8C63', pageBg: '#E4EDE7', cardBg: '#E8F4ED', border: '#BDD9C8' },
+};
+
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -27,9 +33,21 @@ function passwordStrengthValidator(control: AbstractControl): ValidationErrors |
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   form: FormGroup;
   errorMessage = '';
+
+  ngOnInit(): void {
+    const id = localStorage.getItem('epiapp_theme') ?? 'clinical';
+    const t = THEME_VARS[id] ?? THEME_VARS['clinical'];
+    const r = document.documentElement;
+    r.style.setProperty('--theme-primary', t['primary']);
+    r.style.setProperty('--theme-primary-btn', t['btn']);
+    r.style.setProperty('--theme-page-bg', t['pageBg']);
+    r.style.setProperty('--theme-card-bg', t['cardBg']);
+    r.style.setProperty('--theme-border', t['border']);
+    document.body.style.backgroundColor = t['pageBg'];
+  }
 
   constructor(private auth: AuthService, private router: Router, private fb: FormBuilder) {
     this.form = this.fb.group({

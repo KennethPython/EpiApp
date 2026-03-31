@@ -22,10 +22,10 @@
     </mat-card-content>
 
     <mat-card-actions class="actions">
-      <button mat-raised-button color="primary" class="full-width" (click)="login()" [disabled]="!username || !password">
+      <button mat-raised-button class="primary-btn full-width" (click)="login()" [disabled]="!username || !password">
         Login
       </button>
-      <button mat-stroked-button class="full-width" (click)="goToRegister()">
+      <button mat-stroked-button class="outline-btn full-width" (click)="goToRegister()">
         Register
       </button>
     </mat-card-actions>
