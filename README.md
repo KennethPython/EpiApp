@@ -327,3 +327,13 @@ Railway environment variable required for production:
 | Variable | Description |
 |---|---|
 | `JWT_SECRET` | HS256 signing secret (min 32 characters) |
+
+---
+
+## Active branches
+
+| Branch | Status | What's being done |
+|---|---|---|
+| `main` | stable | Production-ready baseline. All merged features land here and trigger a Railway deploy. |
+| `A0001-16-samsung-health` | in progress | Samsung Health Connect integration. Adds a **Sleep** tab to the calendar showing daily sleep duration fetched from Health Connect, colour-coded green (≥ 8 h) or red (< 8 h). Includes a silent permission check on load and a "Grant permission" prompt when the user opens the Sleep tab for the first time. |
+| `android-medication-notification` | in progress | Wires up the **"Take now"** inline action on medication reminder notifications. When tapped, all medications scheduled for that time slot are marked as taken without the user needing to open the app. Includes unit tests for the action handler (Jest). |

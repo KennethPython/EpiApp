@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "types": ["jest"],
+    "paths": {
+      "@capacitor/local-notifications": ["src/__mocks__/@capacitor/local-notifications.ts"],
+      "@capacitor/core": ["src/__mocks__/@capacitor/core.ts"]
+    }
+  },
+  "include": ["src/**/*.spec.ts", "src/**/*.d.ts", "src/setup-jest.ts", "src/__mocks__/**/*.ts"]
+}

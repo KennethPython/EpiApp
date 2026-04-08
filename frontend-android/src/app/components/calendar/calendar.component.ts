@@ -253,6 +253,7 @@ export class CalendarComponent implements OnInit {
   ngOnInit(): void {
     this.loadColors();
     this.loadEvents();
+    this.notificationService.init();
   }
 
   private get todayMonthStr(): string {
