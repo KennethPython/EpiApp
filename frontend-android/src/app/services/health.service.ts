@@ -10,7 +10,7 @@ export interface SleepDay {
 
 interface HealthConnectPlugin {
   checkAvailability(): Promise<{ available: boolean; status: number }>;
-  checkPermissions(): Promise<{ available: boolean; granted: boolean }>;
+  getPermissionsStatus(): Promise<{ available: boolean; granted: boolean }>;
   requestHealthPermissions(): Promise<{ granted: boolean }>;
   openHealthConnectSettings(): Promise<void>;
   getSleepForMonth(options: { year: number; month: number }): Promise<{ days: string }>;
@@ -37,7 +37,7 @@ export class HealthService {
    */
   async checkPermissions(): Promise<{ available: boolean; granted: boolean }> {
     try {
-      return await HealthConnect.checkPermissions();
+      return await HealthConnect.getPermissionsStatus();
     } catch {
       return { available: false, granted: false };
     }
