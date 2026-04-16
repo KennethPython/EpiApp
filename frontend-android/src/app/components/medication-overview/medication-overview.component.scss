@@ -2,6 +2,8 @@
   max-width: 720px;
   margin: 0 auto 24px;
   border-radius: 12px;
+  background: var(--theme-card-bg, #E8F3FC) !important;
+  border: 1px solid var(--theme-border, #BDD9F4) !important;
 }
 
 .overview-title {
@@ -10,7 +12,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--theme-primary, #0E3A6E);
+  opacity: 0.6;
 }
 
 .groups-row {
@@ -23,8 +26,9 @@
   flex: 1;
   min-width: 180px;
   padding: 12px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--theme-border, #BDD9F4);
   border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .time-header {
@@ -37,12 +41,14 @@
 .time-label {
   font-size: 1rem;
   font-weight: 600;
-  color: #3f51b5;
+  color: var(--theme-primary-btn, #1A6FC4);
 }
 
 .take-all-btn {
   white-space: nowrap;
   flex-shrink: 0;
+  border-color: var(--theme-primary-btn, #1A6FC4) !important;
+  color: var(--theme-primary-btn, #1A6FC4) !important;
 }
 
 .med-row {
@@ -81,4 +87,3 @@
   color: #4caf50;
   font-style: italic;
 }
-

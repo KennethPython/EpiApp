@@ -23,6 +23,7 @@ import { DayDetailDialogComponent } from '../day-detail-dialog/day-detail-dialog
 import { AddMedicationDialogComponent } from '../add-medication-dialog/add-medication-dialog.component';
 import { MedicationOverviewComponent } from '../medication-overview/medication-overview.component';
 import { AuthService } from '../../services/auth.service';
+import { HealthService, SleepDay } from '../../services/health.service';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -65,7 +66,7 @@ export interface AppTheme {
   id: string; label: string;
   primary: string; primaryBtn: string; secondary: string;
   border: string; cardBg: string; accent: string;
-  pageBg: string; navBg: string;
+  pageBg: string; navBg: string; hoverBg: string;
   todayBg: string; todayBorder: string; todayText: string;
 }
 
@@ -74,21 +75,21 @@ export const THEMES: AppTheme[] = [
     id: 'dark', label: 'Dark',
     primary: '#3C2580', primaryBtn: '#6A4FC0', secondary: '#9F85E0',
     border: '#D5C8F7', cardBg: '#EEEAFC', accent: '#F6A623',
-    pageBg: '#FAF9FF', navBg: '#3C2580',
+    pageBg: '#EDE8FA', navBg: '#3C2580', hoverBg: 'rgba(106,79,192,0.07)',
     todayBg: 'rgba(106,79,192,0.08)', todayBorder: 'rgba(106,79,192,0.35)', todayText: '#6A4FC0',
   },
   {
     id: 'clinical', label: 'Clinical Blue',
     primary: '#0E3A6E', primaryBtn: '#1A6FC4', secondary: '#4DA3E8',
     border: '#BDD9F4', cardBg: '#E8F3FC', accent: '#1DAF7D',
-    pageBg: '#F4F7FB', navBg: '#0E3A6E',
+    pageBg: '#E3EDF7', navBg: '#0E3A6E', hoverBg: 'rgba(26,111,196,0.07)',
     todayBg: 'rgba(26,111,196,0.08)', todayBorder: 'rgba(26,111,196,0.35)', todayText: '#1A6FC4',
   },
   {
     id: 'soft', label: 'Soft',
     primary: '#2D5C40', primaryBtn: '#4A8C63', secondary: '#7DB896',
     border: '#BDD9C8', cardBg: '#E8F4ED', accent: '#C9A96E',
-    pageBg: '#F6FAF7', navBg: '#2D5C40',
+    pageBg: '#E4EDE7', navBg: '#2D5C40', hoverBg: 'rgba(74,140,99,0.07)',
     todayBg: 'rgba(74,140,99,0.08)', todayBorder: 'rgba(74,140,99,0.35)', todayText: '#4A8C63',
   },
 ];
@@ -132,6 +133,7 @@ export class CalendarComponent implements OnInit {
     this.selectedThemeId = id;
     this.applyTheme();
     localStorage.setItem(this.colorStorageKey + '_theme', id);
+    localStorage.setItem('epiapp_theme', id);
   }
 
   private applyTheme(): void {
@@ -145,12 +147,19 @@ export class CalendarComponent implements OnInit {
     r.style.setProperty('--theme-accent',       t.accent);
     r.style.setProperty('--theme-page-bg',      t.pageBg);
     r.style.setProperty('--theme-nav-bg',       t.navBg);
+    r.style.setProperty('--theme-hover-bg',     t.hoverBg);
     r.style.setProperty('--theme-today-bg',     t.todayBg);
     r.style.setProperty('--theme-today-border', t.todayBorder);
     r.style.setProperty('--theme-today-text',   t.todayText);
   }
 
-  view: 'month' | 'year' = 'month';
+  view: 'month' | 'week' | 'year' | 'sleep' = 'month';
+  currentWeekStart: Date = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+    return d;
+  })();
   showSettings = false;
   speedDialOpen = false;
   showExport = false;
@@ -182,6 +191,12 @@ export class CalendarComponent implements OnInit {
 
   loadError = false;
   colors = { seizure: '#f44336', trigger: '#ff9800', med: '#4caf50' };
+
+  // ── Samsung Health / Sleep ──────────────────────────────────
+  healthAvailable = false;
+  sleepPermissionGranted = false;
+  sleepData: { [dateStr: string]: SleepDay } = {};
+  sleepLoading = false;
 
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly miniWeekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -242,6 +257,7 @@ export class CalendarComponent implements OnInit {
     private authService: AuthService,
     private notificationService: NotificationService,
     private router: Router,
+    private healthService: HealthService,
   ) {}
 
   logout(): void {
@@ -254,6 +270,7 @@ export class CalendarComponent implements OnInit {
     this.loadColors();
     this.loadEvents();
     this.notificationService.init();
+    this.checkHealthPermissions();
   }
 
   private get todayMonthStr(): string {
@@ -304,9 +321,88 @@ export class CalendarComponent implements OnInit {
     });
   }
 
-  setView(v: 'month' | 'year'): void {
+  setView(v: 'month' | 'week' | 'year' | 'sleep'): void {
     this.view = v;
-    if (v === 'year') this.loadYearEvents();
+    if (v === 'year')  this.loadYearEvents();
+    if (v === 'week')  this.syncMonthToWeek();
+    if (v === 'sleep') this.loadSleepData();
+  }
+
+  // ── Samsung Health / Sleep ──────────────────────────────────
+
+  private async checkHealthPermissions(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return;
+    const { available, granted } = await this.healthService.checkPermissions();
+    this.healthAvailable = available;
+    this.sleepPermissionGranted = granted;
+  }
+
+  async requestSleepPermission(): Promise<void> {
+    const granted = await this.healthService.requestPermissions();
+    this.sleepPermissionGranted = granted;
+    if (granted) this.loadSleepData();
+  }
+
+  async loadSleepData(): Promise<void> {
+    if (!this.healthAvailable || !this.sleepPermissionGranted) return;
+    this.sleepLoading = true;
+    // month+1 because currentMonth is 0-indexed, plugin expects 1-indexed
+    const days = await this.healthService.getSleepForMonth(this.currentYear, this.currentMonth + 1);
+    this.sleepData = {};
+    for (const d of days) {
+      this.sleepData[d.date] = d;
+    }
+    this.sleepLoading = false;
+  }
+
+  sleepForDate(date: Date | null): SleepDay | null {
+    if (!date) return null;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return this.sleepData[key] ?? null;
+  }
+
+  get weekDays(): CalendarDay[] {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(this.currentWeekStart);
+      date.setDate(date.getDate() + i);
+      return this.buildDay(date);
+    });
+  }
+
+  get weekLabel(): string {
+    const s = this.currentWeekStart;
+    const e = new Date(s);
+    e.setDate(e.getDate() + 6);
+    const sm = this.monthNames[s.getMonth()];
+    const em = this.monthNames[e.getMonth()];
+    const sy = s.getFullYear(), ey = e.getFullYear();
+    if (sy !== ey) return `${sm} ${s.getDate()}, ${sy} – ${em} ${e.getDate()}, ${ey}`;
+    if (s.getMonth() !== e.getMonth()) return `${sm} ${s.getDate()} – ${em} ${e.getDate()}, ${sy}`;
+    return `${sm} ${s.getDate()} – ${e.getDate()}, ${sy}`;
+  }
+
+  prevWeek(): void {
+    const d = new Date(this.currentWeekStart);
+    d.setDate(d.getDate() - 7);
+    this.currentWeekStart = d;
+    this.syncMonthToWeek();
+  }
+
+  nextWeek(): void {
+    const d = new Date(this.currentWeekStart);
+    d.setDate(d.getDate() + 7);
+    this.currentWeekStart = d;
+    this.syncMonthToWeek();
+  }
+
+  private syncMonthToWeek(): void {
+    const y = this.currentWeekStart.getFullYear();
+    const m = this.currentWeekStart.getMonth();
+    if (y !== this.currentYear || m !== this.currentMonth) {
+      this.currentYear = y;
+      this.currentMonth = m;
+      this.loadMedData();
+    }
   }
 
   loadYearEvents(): void {
@@ -380,57 +476,50 @@ export class CalendarComponent implements OnInit {
     );
   }
 
+  buildDay(date: Date): CalendarDay {
+    const dateStr = this.localDateString(date);
+    const daySeizures = this.seizures.filter(s =>
+      this.localDateString(new Date(s.dateTime)) === dateStr
+    );
+    const dayTriggers = this.triggers.filter(t => t.date === dateStr);
+    const activeMeds = this.medications.filter(m => !m.startDate || m.startDate <= dateStr);
+    const activeTimes = [...new Set(activeMeds.flatMap(m => m.times))].sort();
+    const medSlots: MedSlot[] = activeTimes.map(time => {
+      const medsAtTime = activeMeds.filter(m => m.times.includes(time));
+      const taken = medsAtTime.length > 0 && medsAtTime.every(m =>
+        this.medLogs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr)
+      );
+      return { time, taken };
+    });
+    const allEvents: CalendarEvent[] = [
+      ...daySeizures.map(s => ({ kind: 'seizure' as const, id: s.id!, label: this.seizureLabel(s) })),
+      ...dayTriggers.map(t => ({ kind: 'trigger' as const, id: t.id!, label: this.triggerLabels[t.type] })),
+    ];
+    return {
+      date, seizures: daySeizures, triggers: dayTriggers, medSlots,
+      visibleEvents: allEvents.slice(0, 5),
+      hiddenCount: Math.max(0, allEvents.length - 5),
+    };
+  }
+
   buildCalendar(): void {
     const firstDay = new Date(this.currentYear, this.currentMonth, 1);
     const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
     const startDow = firstDay.getDay();
-
-    const weeks: CalendarDay[][] = [];
-    let week: CalendarDay[] = [];
-
     const emptyDay = (): CalendarDay =>
       ({ date: null, seizures: [], triggers: [], medSlots: [], visibleEvents: [], hiddenCount: 0 });
 
+    const weeks: CalendarDay[][] = [];
+    let week: CalendarDay[] = [];
     for (let i = 0; i < startDow; i++) week.push(emptyDay());
-
     for (let d = 1; d <= lastDay.getDate(); d++) {
-      const date = new Date(this.currentYear, this.currentMonth, d);
-      const dateStr = this.localDateString(date);
-
-      const daySeizures = this.seizures.filter(s =>
-        this.localDateString(new Date(s.dateTime)) === dateStr
-      );
-      const dayTriggers = this.triggers.filter(t => t.date === dateStr);
-
-      const activeMedsForDay = this.medications.filter(m => !m.startDate || m.startDate <= dateStr);
-      const activeTimesForDay = [...new Set(activeMedsForDay.flatMap(m => m.times))].sort();
-      const medSlots: MedSlot[] = activeTimesForDay.map(time => {
-        const medsAtTime = activeMedsForDay.filter(m => m.times.includes(time));
-        const taken = medsAtTime.length > 0 && medsAtTime.every(m =>
-          this.medLogs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr)
-        );
-        return { time, taken };
-      });
-
-      const allEvents: CalendarEvent[] = [
-        ...daySeizures.map(s => ({ kind: 'seizure' as const, id: s.id!, label: this.seizureLabel(s) })),
-        ...dayTriggers.map(t => ({ kind: 'trigger' as const, id: t.id!, label: this.triggerLabels[t.type] })),
-      ];
-
-      week.push({
-        date, seizures: daySeizures, triggers: dayTriggers, medSlots,
-        visibleEvents: allEvents.slice(0, 5),
-        hiddenCount: Math.max(0, allEvents.length - 5),
-      });
-
+      week.push(this.buildDay(new Date(this.currentYear, this.currentMonth, d)));
       if (week.length === 7) { weeks.push(week); week = []; }
     }
-
     if (week.length > 0) {
       while (week.length < 7) week.push(emptyDay());
       weeks.push(week);
     }
-
     this.weeks = weeks;
   }
 
@@ -509,6 +598,51 @@ export class CalendarComponent implements OnInit {
       width: '420px',
       data: { date: cell.date, seizures: cell.seizures, triggers: cell.triggers }
     }).afterClosed().subscribe(changed => { if (changed) this.loadEvents(); });
+  }
+
+  get daysSinceLastSeizure(): number | null {
+    if (this.seizures.length === 0) return null;
+    const last = new Date([...this.seizures].sort((a, b) =>
+      new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
+    )[0].dateTime);
+    last.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  get todayMedStatus(): { total: number; taken: number } {
+    const todayStr = this.localDateString(new Date());
+    const activeMeds = this.medications.filter(m => !m.startDate || m.startDate <= todayStr);
+    const activeTimes = [...new Set(activeMeds.flatMap(m => m.times))].sort();
+    const taken = activeTimes.filter(time => {
+      const medsAtTime = activeMeds.filter(m => m.times.includes(time));
+      return medsAtTime.every(m =>
+        this.sidebarMedLogs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === todayStr)
+      );
+    }).length;
+    return { total: activeTimes.length, taken };
+  }
+
+  get daysAllMedsTakenThisMonth(): number {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let count = 0;
+    for (let d = 1; d < today.getDate(); d++) {
+      const date = new Date(today.getFullYear(), today.getMonth(), d);
+      const dateStr = this.localDateString(date);
+      const activeMeds = this.medications.filter(m => !m.startDate || m.startDate <= dateStr);
+      const activeTimes = [...new Set(activeMeds.flatMap(m => m.times))].sort();
+      if (activeTimes.length === 0) continue;
+      const allTaken = activeTimes.every(time => {
+        const medsAtTime = activeMeds.filter(m => m.times.includes(time));
+        return medsAtTime.every(m =>
+          this.sidebarMedLogs.some(l => l.medicationId === m.id && l.scheduledTime === time && l.date === dateStr)
+        );
+      });
+      if (allTaken) count++;
+    }
+    return count;
   }
 
   isToday(date: Date | null): boolean {
