@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://epiapp-production.up.railway.app',
+  apiUrl: 'https://epilappsy.onrender.com',
   mockAuth: {
     enabled: false,
     username: '',

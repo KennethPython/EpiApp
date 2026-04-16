@@ -68,6 +68,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
             "http://localhost:4200",
             "https://epilappsy.netlify.app",
+            "https://epilappsy.onrender.com",
             "capacitor://localhost",
             "https://localhost",
             "http://localhost"
